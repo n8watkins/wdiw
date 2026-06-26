@@ -6,6 +6,7 @@ import {
   compareWindows,
   pctDelta,
   computeTimeSaved,
+  hourlyHeatmap,
 } from "./dashboards";
 import { localDateKey } from "./constants";
 import type { SearchHistoryEntry } from "../types";
@@ -131,6 +132,28 @@ describe("pctDelta", () => {
   it("'new' when there's no prior data; never returns ∞/NaN", () => {
     expect(pctDelta(8, 0)).toEqual({ pct: null, dir: "new" });
     expect(pctDelta(0, 0)).toEqual({ pct: null, dir: "flat" });
+  });
+});
+
+describe("hourlyHeatmap", () => {
+  it("buckets videos by local weekday + hour and reports the max", () => {
+    const h = [
+      entry({ createdAt: new Date(2026, 5, 17, 14, 5).toISOString() }),  // Wed 2pm
+      entry({ createdAt: new Date(2026, 5, 17, 14, 50).toISOString() }), // Wed 2pm
+      entry({ createdAt: new Date(2026, 5, 14, 9, 0).toISOString() }),   // Sun 9am
+    ];
+    const { grid, max } = hourlyHeatmap(h);
+    expect(grid).toHaveLength(7);
+    expect(grid[0]).toHaveLength(24);
+    expect(grid[3]![14]).toBe(2); // Wed 14:00
+    expect(grid[0]![9]).toBe(1);  // Sun 09:00
+    expect(max).toBe(2);
+  });
+
+  it("skips unparseable createdAt; empty input → all-zero grid, max 0", () => {
+    const { grid, max } = hourlyHeatmap([entry({ createdAt: "not-a-date" })]);
+    expect(max).toBe(0);
+    expect(grid.flat().every((c) => c === 0)).toBe(true);
   });
 });
 

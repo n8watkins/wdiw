@@ -11,6 +11,7 @@ import {
 import { localDateKey, STORAGE_KEYS, TLDW_STATS_KEY } from "../../lib/constants";
 import {
   compareWindows,
+  hourlyHeatmap,
   pctDelta,
   type Delta,
   type WindowKind,
@@ -110,6 +111,24 @@ function heatmapColor(count: number): string {
   if (count === 1) return "rgba(124,58,237,0.28)";
   if (count <= 3) return "rgba(124,58,237,0.55)";
   return "rgba(124,58,237,0.9)";
+}
+
+// --- time-of-day heatmap (peak hours) ---------------------------------------
+
+const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+/** Hour 0–23 → compact label like "12a" / "6a" / "12p" / "11p". */
+function fmtHour(h: number): string {
+  const period = h < 12 ? "a" : "p";
+  const hr = h % 12 === 0 ? 12 : h % 12;
+  return `${hr}${period}`;
+}
+
+/** Cell colour scaled by this cell's share of the busiest hour. */
+function heatCellColor(count: number, max: number): string {
+  if (count <= 0 || max <= 0) return "rgba(124,58,237,0.07)";
+  const alpha = 0.18 + (count / max) * 0.72;
+  return `rgba(124,58,237,${alpha.toFixed(2)})`;
 }
 
 // ---------------------------------------------------------------------------
@@ -438,6 +457,7 @@ export function StatsSection() {
   const channelCount = Object.keys(stats.channels ?? {}).length;
   const streak = computeStreak(stats.activity);
   const heatmapGrid = buildHeatmapGrid(stats.activity);
+  const hourHeat = hourlyHeatmap(history);
 
   const donutSlices: DonutSlice[] = [
     { value: stats.engaged, color: "#22c55e", label: "Engaged" },
@@ -569,6 +589,40 @@ export function StatsSection() {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* ── When you watch (time-of-day heatmap) ────────────────── */}
+      <div className="stat-card stat-card-heatmap" style={{ "--ca": "#06b6d4", "--cg": "rgba(6,182,212,0.12)", marginBottom: 16 } as CSSProperties}>
+        <div className="stat-card-label">
+          When you watch
+          <span style={{ color: "#64748b", fontWeight: 400, fontSize: 11, marginLeft: 6 }}>· local time, recent history</span>
+        </div>
+        {hourHeat.max === 0 ? (
+          <div className="stat-empty">Watch a few videos to see your peak hours.</div>
+        ) : (
+          <div style={{ marginTop: 10 }}>
+            {DOW.map((label, wd) => (
+              <div key={label} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                <span style={{ width: 28, fontSize: 10, color: "#94a3b8", textAlign: "right", flexShrink: 0 }}>{label}</span>
+                <div style={{ display: "flex", gap: 2, flex: 1 }}>
+                  {hourHeat.grid[wd]!.map((count, hr) => (
+                    <div
+                      key={hr}
+                      title={`${label} ${fmtHour(hr)} — ${count} ${count === 1 ? "video" : "videos"}`}
+                      style={{ flex: 1, height: 12, borderRadius: 2, background: heatCellColor(count, hourHeat.max) }}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+            <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+              <span style={{ width: 28, flexShrink: 0 }} />
+              <div style={{ display: "flex", flex: 1, justifyContent: "space-between", fontSize: 9, color: "#64748b" }}>
+                <span>12a</span><span>6a</span><span>12p</span><span>6p</span><span>11p</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Per-channel engagement: time spent + most engaged ───── */}

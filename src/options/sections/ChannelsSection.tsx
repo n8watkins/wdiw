@@ -58,6 +58,52 @@ function engagementPillStyle(label: string): { background: string; color: string
 }
 
 type SortKey = "time" | "count" | "recent";
+type Kind = "all" | "long" | "short";
+
+const KIND_OPTIONS: { value: Kind; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "long", label: "Long-form" },
+  { value: "short", label: "Shorts" },
+];
+
+/** Compact three-button segmented control for the All/Long-form/Shorts filter. */
+function KindFilter({ value, onChange }: { value: Kind; onChange: (k: Kind) => void }) {
+  return (
+    <div
+      style={{
+        display: "inline-flex",
+        border: "1px solid var(--border)",
+        borderRadius: 6,
+        overflow: "hidden",
+        background: "var(--surface)",
+      }}
+    >
+      {KIND_OPTIONS.map((opt, i) => {
+        const active = value === opt.value;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onChange(opt.value)}
+            style={{
+              fontSize: 12,
+              fontWeight: active ? 600 : 500,
+              padding: "5px 10px",
+              border: "none",
+              borderLeft: i === 0 ? "none" : "1px solid var(--border)",
+              cursor: "pointer",
+              background: active ? "var(--accent)" : "var(--surface2)",
+              color: active ? "#fff" : "var(--muted)",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 // ---- Avatar component -------------------------------------------------------
 
@@ -324,8 +370,8 @@ function ChannelCard({
 // ---- Main section -----------------------------------------------------------
 
 export function ChannelsSection() {
-  const [channels, setChannels] = useState<ChannelStats[]>([]);
-  const [totalVideos, setTotalVideos] = useState(0);
+  const [history, setHistory] = useState<SearchHistoryEntry[]>([]);
+  const [kind, setKind] = useState<Kind>("all");
   const [sortKey, setSortKey] = useState<SortKey>("time");
   const [search, setSearch] = useState("");
   // Lifted here (not inside ChannelCard) so an expanded channel survives being
@@ -334,9 +380,7 @@ export function ChannelsSection() {
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
-    const history = await getHistory();
-    setChannels(computeChannelStats(history));
-    setTotalVideos(history.filter((e) => !!e.channel).length);
+    setHistory(await getHistory());
   }, []);
 
   useEffect(() => {
@@ -350,6 +394,16 @@ export function ChannelsSection() {
     chrome.storage.onChanged.addListener(onChanged);
     return () => chrome.storage.onChanged.removeListener(onChanged);
   }, [reload]);
+
+  const kindHistory = useMemo(
+    () =>
+      kind === "all"
+        ? history
+        : history.filter((e) => (kind === "short" ? e.isShort === true : e.isShort !== true)),
+    [history, kind],
+  );
+  const channels = useMemo(() => computeChannelStats(kindHistory), [kindHistory]);
+  const totalVideos = useMemo(() => kindHistory.filter((e) => !!e.channel).length, [kindHistory]);
 
   const sorted = useMemo(() => {
     return [...channels].sort((a, b) => {
@@ -376,7 +430,7 @@ export function ChannelsSection() {
         </p>
       </div>
 
-      {channels.length === 0 ? (
+      {history.length === 0 ? (
         <div className="empty-state">
           No channel data yet. Watch some YouTube videos and your channels will appear here.
         </div>
@@ -389,6 +443,7 @@ export function ChannelsSection() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
+            <KindFilter value={kind} onChange={setKind} />
           </div>
 
           <div
@@ -419,7 +474,15 @@ export function ChannelsSection() {
           </div>
 
           {visible.length === 0 ? (
-            <div className="empty-state">No channels match “{search}”.</div>
+            <div className="empty-state">
+              {channels.length === 0
+                ? kind === "short"
+                  ? "No Shorts from any channel yet."
+                  : kind === "long"
+                    ? "No long-form videos from any channel yet."
+                    : "No channels yet."
+                : `No channels match “${search}”.`}
+            </div>
           ) : (
             <VirtualList
               items={visible}

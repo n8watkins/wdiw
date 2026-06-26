@@ -48,10 +48,58 @@ const VERDICT_COLORS: Record<"watch" | "skim" | "skip", string> = {
   skip: "#dc2626",
 };
 
+type Kind = "all" | "long" | "short";
+
+const KIND_OPTIONS: { value: Kind; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "long", label: "Long-form" },
+  { value: "short", label: "Shorts" },
+];
+
+/** Compact three-button segmented control for the All/Long-form/Shorts filter. */
+function KindFilter({ value, onChange }: { value: Kind; onChange: (k: Kind) => void }) {
+  return (
+    <div
+      style={{
+        display: "inline-flex",
+        border: "1px solid var(--border)",
+        borderRadius: 6,
+        overflow: "hidden",
+        background: "var(--surface)",
+      }}
+    >
+      {KIND_OPTIONS.map((opt, i) => {
+        const active = value === opt.value;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onChange(opt.value)}
+            style={{
+              fontSize: 12,
+              fontWeight: active ? 600 : 500,
+              padding: "5px 10px",
+              border: "none",
+              borderLeft: i === 0 ? "none" : "1px solid var(--border)",
+              cursor: "pointer",
+              background: active ? "var(--accent)" : "var(--surface2)",
+              color: active ? "#fff" : "var(--muted)",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function HistorySection() {
   const [entries, setEntries] = useState<SearchHistoryEntry[]>([]);
   const [settings, setSettingsState] = useState<Settings | null>(null);
   const [query, setQuery] = useState("");
+  const [kind, setKind] = useState<Kind>("all");
   const [openId, setOpenId] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -129,14 +177,19 @@ export function HistorySection() {
     URL.revokeObjectURL(url);
   }
 
+  const byKind =
+    kind === "all"
+      ? entries
+      : entries.filter((e) => (kind === "short" ? e.isShort === true : e.isShort !== true));
+
   const filtered = query.trim()
-    ? entries.filter(
+    ? byKind.filter(
         (e) =>
           e.videoTitle?.toLowerCase().includes(query.toLowerCase()) ||
           e.videoUrl.toLowerCase().includes(query.toLowerCase()) ||
           e.channel?.toLowerCase().includes(query.toLowerCase()),
       )
-    : entries;
+    : byKind;
 
   return (
     <div className="history-page">
@@ -154,6 +207,7 @@ export function HistorySection() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
+        <KindFilter value={kind} onChange={setKind} />
         {entries.length > 0 && (
           <div className="toolbar-actions">
             <button className="btn btn-ghost btn-icon-text" onClick={exportHistory}>
@@ -232,7 +286,13 @@ export function HistorySection() {
           <div className="empty-state">
             {entries.length === 0
               ? "No videos watched yet — they'll appear here as you watch."
-              : "No results for that search."}
+              : query.trim()
+                ? "No results for that search."
+                : kind === "short"
+                  ? "No Shorts in your history yet."
+                  : kind === "long"
+                    ? "No long-form videos in your history yet."
+                    : "No videos in your history."}
           </div>
         </div>
       ) : (

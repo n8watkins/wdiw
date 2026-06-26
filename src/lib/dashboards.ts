@@ -177,3 +177,36 @@ export function computeTimeSaved(history: SearchHistoryEntry[]): number {
     return acc;
   }, 0);
 }
+
+// --- time-of-day heatmap (peak hours) ---------------------------------------
+
+/** A 7×24 "when do you watch" grid + the busiest cell's count (for scaling). */
+export type HourHeatmap = {
+  /** grid[weekday 0=Sun..6=Sat][hour 0..23] = videos started in that local bucket. */
+  grid: number[][];
+  /** Max cell count (0 when empty) — the denominator for colour intensity. */
+  max: number;
+};
+
+/**
+ * Bucket each watched video by the LOCAL weekday + hour it was first seen
+ * (`createdAt`), into a 7×24 grid — the peak-hours / "when do you binge" view.
+ * Local components (getDay/getHours) match how the day heatmap + streak read,
+ * so the grid lines up with the user's calendar. Entries with an unparseable
+ * `createdAt` are skipped. Counts videos (not seconds): createdAt marks the
+ * start, while watchedSeconds is a cumulative total that can't be placed in one
+ * hour. Reflects the retained history window (history is pruned).
+ */
+export function hourlyHeatmap(history: SearchHistoryEntry[]): HourHeatmap {
+  const grid: number[][] = Array.from({ length: 7 }, () => new Array<number>(24).fill(0));
+  let max = 0;
+  for (const e of history) {
+    const d = new Date(e.createdAt);
+    if (Number.isNaN(d.getTime())) continue;
+    const wd = d.getDay();
+    const hr = d.getHours();
+    const next = (grid[wd]![hr]! += 1);
+    if (next > max) max = next;
+  }
+  return { grid, max };
+}
