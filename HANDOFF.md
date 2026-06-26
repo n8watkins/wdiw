@@ -41,19 +41,19 @@ feasibility in [`../tldw/docs/ANALYTICS_SPLIT.md`](../tldw/docs/ANALYTICS_SPLIT.
 | `0a6730c` | **Rename → WDIW** ("What Did I Watch?"). GitHub repo also renamed to `n8watkins/wdiw`. Internal `tldw*` keys + working dir unchanged. |
 | `b10428c` `4d1c325` | **Step 7-E**: doom-scroll nudge — daily Shorts limit (Settings) → toolbar badge + popup banner (`shortsLimitStatus`). `4d1c325` = a second deep review's fixes (global `videosWatched` counter for a consistent Shorts/long split; badge listener short-circuit; nudge-number reconciliation). |
 | `8f866c5` | **Step 7-D polish (completes Step 7)**: "When you watch" time-of-day heatmap (`dashboards.hourlyHeatmap`) + Shorts/Long/All kind filter on Channels + History. |
+| `54bf935` | **Step 5a — TL;DW import bridge**: `lib/migrate.ts` (parse/collapse/fold) + `storage.importHistoryEntries` + Settings → Import card. Imports a TL;DW history export (or WDIW backup) and rebuilds the stats. |
 
-**Verified:** `npm run typecheck` clean, **111/111** tests, `npm run build` OK. **Step 7
-is complete.** The extension loads, accrues data (incl. Shorts), renders the dashboards
+**Verified:** `npm run typecheck` clean, **121/121** tests, `npm run build` OK. **Step 7
+is complete; Step 5a (TL;DW import) done.** The extension loads, accrues data (incl. Shorts), renders the dashboards
 (per-channel time/engagement, Shorts split, peak-hours heatmap, kind filters), and shows
 the doom-scroll nudge. A loadable build is copied to `C:\Users\natha\Downloads\watchprint-dist`
 for unpacked install (`build` is plain `vite build` — no auto Windows copy; re-copy
 `dist/` after rebuilds).
 
-**NOT done yet (★ next = Step 5 migration):** **no TL;DW → WDIW data migration exists** —
-chrome.storage is per-extension, so WDIW starts empty and can't read TL;DW's
-`tldwStats`/`history`. Build the one-time export→import JSON bridge + the optional Google
-Takeout `watch-history.json` backfill importer. Also pending: the step 2.5 type-trim
-cleanup. (Name: **WDIW**; repo `n8watkins/wdiw`.)
+**NOT done yet (★ next = Takeout import):** the TL;DW → WDIW import bridge is **done**
+(Settings → Import). Remaining is the **Google Takeout `watch-history.json`** backfill
+importer (Step 5b) for years of past history, plus the step 2.5 type-trim cleanup.
+(Name: **WDIW**; repo `n8watkins/wdiw`.)
 
 ## How the capture works (the data flow)
 
@@ -90,13 +90,14 @@ Shorts track (capture fixed); Stats shows the Shorts-vs-long split, longest doom
 "channels the algorithm feeds you", and the peak-hours heatmap; Channels + History have a
 kind filter; and the **nudge** ships (daily Shorts limit → toolbar badge + popup banner).
 
-### 3. ★ Step 5 — Migration from TL;DW + Takeout backfill (NEXT)
-chrome.storage is per-extension, so WDIW **cannot read TL;DW's data** — existing users'
-stats are stranded. Build: (a) a one-time **export-from-TL;DW → import-into-WDIW** JSON
-bridge for `tldwStats` + `history`; (b) an optional **Google Takeout** `watch-history.json`
-importer to seed years of past history. **Data-access verified:** no API returns watch
-history with or without Google auth (removed 2016) — auth-free; Takeout is the only
-ToS-clean backfill (and it has no watch durations — enrich what we can, be honest).
+### 3. ◐ Step 5 — Migration from TL;DW + Takeout backfill (part a done; ★ Takeout next)
+✅ **TL;DW → WDIW import bridge** (`54bf935`): Settings → Import loads a TL;DW history
+export (or a WDIW backup) and rebuilds per-channel + lifetime stats by folding the videos
+in (`lib/migrate.ts` + `storage.importHistoryEntries`). TL;DW unchanged ("export as is").
+☐ **★ Google Takeout `watch-history.json` importer** — the big backfill; a separate
+parser mapping Takeout rows → `SearchHistoryEntry`, then reuse `collapseByVideo` +
+`importHistoryEntries`. No durations in Takeout. **Data-access verified:** no API returns
+watch history with or without Google auth (removed 2016).
 
 ### 4. Step 2.5 — finish the trim (cleanup, low priority)
 `types/index.ts` still carries a dead summarizer/message/sponsor type block (left

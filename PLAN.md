@@ -51,11 +51,18 @@ never-pruned heatmap / active-days signal), `HISTORY_EXPIRY_OPTIONS`. Deferred f
 original Watchprint angle: the **Shorts-vs-long-form split** + **time-of-day heatmap** →
 now Step 7.
 
-## Step 5 — Migration + history
-- One-time **export-from-TL;DW → import** bridge (chrome.storage is per-extension, so
-  Watchprint starts empty; existing TL;DW users' `tldwStats` would otherwise be stranded).
-- Optional **Google Takeout** `watch-history.json` importer to seed years of past
-  history (the only ToS-clean path to historical data; no watch durations in it).
+## Step 5 — Migration + history (◐ part a done; Takeout next)
+- ✅ **Export-from-TL;DW → import bridge** (commit `54bf935`). chrome.storage is
+  per-extension, and TL;DW only exports its **history** (Options → History → Export:
+  `{ source, entries }`), not the `tldwStats` aggregates — so WDIW imports that JSON
+  **as-is** and **rebuilds** the per-channel + lifetime stats by folding the videos in
+  (`lib/migrate.ts`: parse/collapseByVideo/foldImportedEntries + `storage.importHistoryEntries`;
+  UI at Settings → Import). TL;DW untouched; the shared shape doubles as WDIW backup-restore.
+- ☐ **Google Takeout `watch-history.json` importer** — seed *years* of past history (the
+  only ToS-clean backfill; Takeout has **no watch durations**, so enrich what we can and
+  be honest). **NEXT.** Different format from the TL;DW export — a separate parser that
+  maps Takeout rows → `SearchHistoryEntry` (titleUrl→videoUrl, time→createdAt,
+  subtitles[0]→channel), then reuses `collapseByVideo` + `importHistoryEntries`.
 
 ## Step 6 — Positioning
 Lead on the competitive white space (see ANALYTICS_SPLIT.md): per-channel,
