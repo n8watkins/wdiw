@@ -17,7 +17,10 @@ The copy dragged in summarizer-only code to stay green. Now remove it:
   `bumpChannelStat`, `verdictCounterDelta`, `trimActivity`, `watchedSecondsFromHistory`),
   startup sweep.
 - `constants.ts` / `types/index.ts`: trim to the analytics subset (`Settings` →
-  engagement fields only; drop destinations/profiles/Gemini types). Delete `profiles.ts`.
+  engagement fields only; drop destinations/profiles/Gemini types). Delete the
+  copied `watchprint/src/lib/profiles.ts` — it's dead weight here (Watchprint
+  doesn't summarize, so it has no prompt profiles). **TL;DW keeps its own
+  profiles.ts untouched — this only removes Watchprint's copy.**
 - Decide storage-key naming: keep `tldwStats`/`history` (isolated per-extension, so
   no collision) or rename to `watchprint*` (cleaner, but then the migration importer
   must map old → new).

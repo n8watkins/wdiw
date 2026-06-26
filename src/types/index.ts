@@ -45,117 +45,9 @@ export type SearchHistoryEntry = {
   createdAt: string;
 };
 
-/**
- * A destination tab TL;DW opened this browser session. Lives in
- * chrome.storage.session (cleared on browser restart) and is pruned as tabs
- * close, so the popup can offer "jump back to the tab I searched in".
- */
-export type OpenSearch = {
-  tabId: number;
-  /** The YouTube tab that triggered this search, so the popup can reach back to it. */
-  sourceTabId?: number;
-  /** URL of the source YouTube video, used as a fallback if sourceTabId's tab has closed. */
-  videoUrl?: string;
-  videoTitle?: string;
-  destinationId: string;
-  destinationLabel: string;
-  createdAt: string;
-};
-
-/**
- * Outcome of an auto-fill attempt on a destination page, reported by the
- * injector back to the background. Lives in chrome.storage.session so the popup
- * can surface failures (e.g. a selector that rotted) where the user will see
- * them and know to update them.
- */
-export type DeliveryStatus = {
-  /** Human label of the site we tried to fill ("ChatGPT", "NotebookLM", …). */
-  site: string;
-  ok: boolean;
-  /** Why it failed, phrased for the popup alert. */
-  reason?: string;
-  at: string;
-  /**
-   * What this status is about. "delivery" (default) = an auto-fill attempt;
-   * "gate" = the worth-watching verdict's duration read. They're shown
-   * separately so a skipped gate doesn't masquerade as a failed delivery.
-   */
-  kind?: "delivery" | "gate";
-};
-
 export type HistoryLimit = 50 | 100 | 250 | "unlimited";
 
-/** Usage stats for direct Gemini API calls. */
-export type GeminiUsage = {
-  /** Calls since the last manual clear. */
-  totalCalls: number;
-  /** Permanent all-time total — never reset by clearing usage. */
-  allTimeCalls: number;
-  /** Calls made on `todayDate` (resets automatically each new day). */
-  todayCalls: number;
-  /** YYYY-MM-DD of the last call, used to detect day roll-overs. */
-  todayDate?: string;
-  lastCalledAt?: string;
-};
-
-/**
- * A YouTube channel the user has opted into automatic TL;DW summarization for.
- * Stored as an array in chrome.storage.local under "autoRunChannels".
- */
-export type AutoRunChannel = {
-  /** Href path from the channel link, e.g. "/@PiersMorgan" or "/channel/UCxxxxx". */
-  id: string;
-  /** Display name shown on the channel page, e.g. "Piers Morgan Uncensored". */
-  name: string;
-  /** YouTube avatar URL scraped from the watch page (refreshed on each visit). */
-  avatarUrl: string;
-  /** ISO timestamp when the user added this channel to the auto-run list. */
-  addedAt: string;
-  /** Auto-fire the AI summary when opening a video from this channel. Defaults true for legacy entries. */
-  autoRunSummary: boolean;
-};
-
-/**
- * A reusable summary modifier the user attaches to channels (or one-off videos).
- * `prompt` is the instruction woven into the summary prompt (like userCuriosity),
- * so e.g. a "Citations" tag makes the summary surface the video's sources.
- *
- * Assignments live in two maps (see CHANNEL_TAGS_KEY / VIDEO_TAGS_KEY):
- * channel tags auto-apply to every video from that channel; video tags are
- * one-off. "Apply to all future videos of this channel" promotes a video tag
- * into the channel map.
- */
-export type Tag = {
-  id: string;
-  label: string;   // shown on the widget chip + picker, e.g. "Citations"
-  prompt: string;  // e.g. "Include the specific sources/citations the video relies on."
-};
-
-/** Cached summary result keyed by video ID in chrome.storage.local. */
-export type CachedSummary = {
-  tldw: TldwSummary;
-  /** ISO timestamp when this entry was written. */
-  cachedAt: string;
-  /** The user's personal verdict on whether the video was worth watching. */
-  userRating?: "watch" | "skim" | "skip";
-  /** Channel display name — used to scope cached entries by channel. */
-  channelName?: string;
-};
-
-/** One entry in the Direct API call log — stored per video summarized. */
-export type GeminiCallEntry = {
-  id: string;
-  videoUrl: string;
-  videoTitle?: string;
-  /** ISO timestamp of the call. */
-  at: string;
-  /** Transcript-free prompt sent to the API. */
-  prompt?: string;
-  /** Raw text response from the API. */
-  response?: string;
-};
-
-/** Age thresholds the history auto-expiry offers (see HISTORY_EXPIRY_OPTIONS). */
+/** Age thresholds the history auto-expiry offers. */
 export type HistoryExpiryDays = 7 | 30 | 90 | 365;
 
 /**
@@ -316,12 +208,6 @@ export type Settings = {
   keepFullCallLog: boolean;
 };
 
-export type StorageState = {
-  profiles: PromptProfile[];
-  history: SearchHistoryEntry[];
-  settings: Settings;
-};
-
 export type VideoContext = {
   url: string;
   title?: string;
@@ -329,15 +215,6 @@ export type VideoContext = {
   /** Channel id/href (e.g. "/@Handle" or "/channel/UC…") from getChannelInfo().id.
    *  Used to resolve channel tags by id (with name fallback), matching the
    *  widget's writer and the auto-run channel lookups. */
-  channelId?: string;
-  avatarUrl?: string;
-};
-
-/** Metadata read from the YouTube page for the worth-watching gate. */
-export type VideoMeta = {
-  durationSeconds: number;
-  channel: string;
-  /** Channel id/href (getChannelInfo().id) — for channel-tag resolution. */
   channelId?: string;
   avatarUrl?: string;
 };
