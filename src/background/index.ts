@@ -8,7 +8,7 @@ import {
 } from "../lib/storage";
 import { localDateKey, STORAGE_KEYS, TLDW_STATS_KEY } from "../lib/constants";
 import { shortsLimitStatus } from "../lib/shorts";
-import type { RuntimeMessage } from "../types";
+import type { LifetimeStats, RuntimeMessage } from "../types";
 
 // WDIW (What Did I Watch?) service worker — local-only watch-behavior recorder.
 //
@@ -41,7 +41,9 @@ async function startupStorageSweep(): Promise<void> {
  * Reflect today's Shorts usage vs the daily limit on the toolbar badge — the
  * always-visible half of the doom-scroll nudge. Shows today's Shorts minutes,
  * green → amber → red as you approach/exceed the limit; cleared when no limit is
- * set. Best-effort: a badge update must never throw.
+ * set. Best-effort: a badge update must never throw. After local midnight the
+ * badge shows the prior day until the next stats write or worker spin-up refreshes
+ * it (no alarm — kept deliberately simple).
  */
 async function updateShortsBadge(): Promise<void> {
   try {
@@ -74,13 +76,23 @@ chrome.runtime.onStartup.addListener(() => {
   void updateShortsBadge();
 });
 
-// Keep the badge in sync as Shorts time accrues (every WATCH_PROGRESS write hits
-// tldwStats) and when the daily limit changes (settings). storage.onChanged
-// fires in this worker for its own writes too, so this one listener covers both.
+// Keep the badge in sync when the daily limit changes (settings) and as Shorts
+// time accrues. storage.onChanged fires in this worker for its own writes too, so
+// one listener covers both. tldwStats is written every ~10s during ANY playback,
+// so only refresh when today's Shorts bucket actually moved — a long-form binge
+// (no Shorts) skips the work entirely.
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
-  if (changes[TLDW_STATS_KEY] || changes[STORAGE_KEYS.settings]) {
+  if (changes[STORAGE_KEYS.settings]) {
     void updateShortsBadge();
+    return;
+  }
+  const statsChange = changes[TLDW_STATS_KEY];
+  if (statsChange) {
+    const today = localDateKey();
+    const before = (statsChange.oldValue as LifetimeStats | undefined)?.dailyShortsSeconds?.[today] ?? 0;
+    const after = (statsChange.newValue as LifetimeStats | undefined)?.dailyShortsSeconds?.[today] ?? 0;
+    if (before !== after) void updateShortsBadge();
   }
 });
 

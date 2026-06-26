@@ -116,7 +116,8 @@ export function App() {
         )}
       </div>
 
-      {limit && limit.level !== "off" && (
+      {limit &&
+        (limit.level === "warn" || limit.level === "over" || (limit.level === "ok" && limit.minutes > 0)) && (
         <div
           style={{
             marginTop: 12,

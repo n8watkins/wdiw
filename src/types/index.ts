@@ -104,6 +104,12 @@ export type LifetimeStats = {
   sponsorSecondsSaved: number;
   /** Total tracked watch time across all videos (in seconds). */
   secondsWatched: number;
+  /**
+   * Lifetime count of distinct videos watched — bumped once per new video,
+   * channel-independent (unlike the per-channel `videosWatched` tally, which
+   * misses channel-less videos and is capped). Approximate, like that tally.
+   */
+  videosWatched?: number;
   /** Lifetime count of videos rated "Engaged" (watch). */
   engaged: number;
   /** Lifetime count of videos rated "Skimmed" (skim). */

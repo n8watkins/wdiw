@@ -229,6 +229,8 @@ export function shortsLimitStatus(
   const fraction = seconds / limitSeconds;
   const level: ShortsLimitLevel =
     fraction >= 1 ? "over" : fraction >= SHORTS_WARN_FRACTION ? "warn" : "ok";
-  const remainingMinutes = Math.max(0, Math.ceil((limitSeconds - seconds) / 60));
+  // Derive remaining from the displayed `minutes` (not raw seconds) so the two
+  // numbers always reconcile — e.g. "35 / 40 min · 5 left", never 35 + 6.
+  const remainingMinutes = Math.max(0, limitMinutes - minutes);
   return { level, minutes, limitMinutes, fraction, remainingMinutes };
 }

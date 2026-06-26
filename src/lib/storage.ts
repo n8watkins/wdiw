@@ -252,6 +252,7 @@ export async function recordWatchProgress(args: {
       // (history alone is pruned, so it can't back a 12-week/yearly view).
       if (wasNewEntry) {
         s.activity[dayKey] = (s.activity[dayKey] ?? 0) + 1;
+        s.videosWatched = (s.videosWatched ?? 0) + 1;
         if (isShort) s.shortsCount = (s.shortsCount ?? 0) + 1;
       }
       if (verdictDelta) {
@@ -285,6 +286,7 @@ export function emptyLifetimeStats(): LifetimeStats {
     sponsorSkips: 0,
     sponsorSecondsSaved: 0,
     secondsWatched: 0,
+    videosWatched: 0,
     engaged: 0,
     skimmed: 0,
     skipped: 0,

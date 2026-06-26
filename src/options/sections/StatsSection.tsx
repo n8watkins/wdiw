@@ -431,7 +431,10 @@ export function StatsSection() {
   // persisted map.
   const topChannel = timeRanked[0];
   const uniqueChannels = channelStats.length;
-  const totalVideos = Object.values(stats.channels ?? {}).reduce((acc, c) => acc + c.videosWatched, 0);
+  // Global counter (channel-independent) so it stays consistent with the global
+  // shortsCount in the Shorts split — the per-channel sum would miss channel-less
+  // / evicted-channel videos and make `longCount = total − shorts` skew.
+  const totalVideos = stats.videosWatched ?? 0;
   const channelCount = Object.keys(stats.channels ?? {}).length;
   const streak = computeStreak(stats.activity);
   const heatmapGrid = buildHeatmapGrid(stats.activity);
