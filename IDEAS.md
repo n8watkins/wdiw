@@ -72,7 +72,9 @@ time/channel view (give that away free to win distribution). Keep core free for 
 ## Suggested build order
 ✅ Phase 0 dashboards → ✅ Shorts split + quantifier (1.2) → ✅ Takeout import (2.5) →
 ✅ shipping polish (icons / first-run onboarding / store + privacy docs) →
-✅ accuracy hardening (1.3 — background/ad/seek aware).
+✅ accuracy hardening (1.3 — background/ad/seek aware) → ✅ quick wins (CI, capture-health
+signal, pause toggle, dead-code trim).
 **Next:** **trends & source-attribution** (2.6–2.7) → category/topic breakdown + broader
-goals/recap (Phase 3) → step 2.5 dead-code trim. ⚠️ **Live capture must be verified in a
-real browser before store submission** (esp. now that capture gates on hidden/ad state).
+goals/recap (Phase 3) → full backup/restore (export incl. stats). ⚠️ **Live capture must be
+verified in a real browser before store submission** (esp. now that capture gates on
+hidden/ad state).

@@ -45,10 +45,12 @@ feasibility in [`../tldw/docs/ANALYTICS_SPLIT.md`](../tldw/docs/ANALYTICS_SPLIT.
 | `4214df8` | **Step 5b — Google Takeout importer (completes Step 5)**: `parseTakeoutHistory` (cleans the Takeout array) + `importTakeoutEvents` (watermarked, idempotent) + auto-detect in Settings → Import + "Most-watched channels" by-count card. Takeout = counts/activity only (no durations/engagement; Shorts indistinguishable). |
 | `a51827b` | **Shipping polish**: real WDIW icons (`scripts/gen-icons.mjs`, dependency-free) replacing tl-dw placeholders; first-run onboarding banner (`firstRunNoticeSeen`); README/PRIVACY/LICENSE/STORE docs. |
 | `2be979c` | **Accuracy hardening (IDEAS §1.3)**: pure `lib/watchgate.ts` `countableSeconds` — don't count hidden/background tabs (PiP counts), paused/ended, or ad playback; seek-reject + clamp now tested. Wired into `watchtime.ts`. |
+| `f09e599` `7d925a6` | **Quick wins**: CI (`.github/workflows/ci.yml`) + `minimum_chrome_version`; popup capture-health line (`lastRecordedAt`) + one-click pause toggle; **dead-code trim** (types/Settings/LifetimeStats cut to live fields, `addHistoryEntry` removed). |
 
-**Verified:** `npm run typecheck` clean, **147/147** tests, `npm run build` OK. **Steps 7
-and 5 are complete + shipping polish + accuracy hardening** (live capture + dashboards +
-nudge + TL;DW/Takeout import + real icons/onboarding/docs + background/ad-aware capture). The extension loads, accrues data (incl. Shorts), renders the dashboards
+**Verified:** `npm run typecheck` clean, **147/147** tests, `npm run build` OK + CI on push.
+**Build plan + polish + accuracy + step-2.5 trim all done** (live capture + dashboards +
+nudge + TL;DW/Takeout import + real icons/onboarding/docs + background/ad-aware capture +
+popup capture-health/pause + trimmed codebase). The extension loads, accrues data (incl. Shorts), renders the dashboards
 (per-channel time/engagement, Shorts split, peak-hours heatmap, kind filters), and shows
 the doom-scroll nudge. A loadable build is copied to `C:\Users\natha\Downloads\watchprint-dist`
 for unpacked install (`build` is plain `vite build` — no auto Windows copy; re-copy
@@ -108,18 +110,20 @@ ad/seek-aware, `lib/watchgate.ts`) are all done. **#1 still-open: live browser v
 — capture has never been run for real (and now gates on hidden/ad state, so it must be
 checked live before store submission). Then roadmap candidates: trends & source-attribution
 (IDEAS 2.6–2.7); never-pruned per-hour data (so the time-of-day heatmap isn't limited to
-retained history); step 2.5 dead-code trim (see below); category breakdown + broader goals.
-A real Google Takeout export is on its way from the user — exercise `parseTakeoutHistory` /
-`importTakeoutEvents` against it when it lands.
+retained history); category breakdown + broader goals; and optionally renaming the `tldw*`
+storage keys (needs a migration). A real Google Takeout export is on its way from the user —
+exercise `parseTakeoutHistory` / `importTakeoutEvents` against it when it lands.
 
-### 4. Step 2.5 — finish the trim (cleanup, low priority)
-`types/index.ts` still carries a dead summarizer/message/sponsor type block (left
-intentionally to avoid a cascade during step 2). Remove what's now truly unused.
-Optionally rename the `tldw*` storage keys (then add a migration in step 5).
+### 4. ✅ Step 2.5 — dead-code trim (done — commit `7d925a6`)
+Removed the dead summarizer/sponsor/message types, trimmed `Settings`/`LifetimeStats`/
+`DEFAULT_SETTINGS`/`emptyLifetimeStats` to live fields, dropped the never-called
+`addHistoryEntry`. `options.css` left as-is (harmless; trimming blind is risky). The
+`tldw*` storage **key names** are still unchanged (rename needs a migration).
 
-### 5. Then the product roadmap → [`IDEAS.md`](IDEAS.md)
-Shorts-vs-long split + a **Shorts quantifier**, **accuracy hardening** (the #1
-incumbent complaint), source attribution, trends, optional goals/nudges.
+### 5. Product roadmap → [`IDEAS.md`](IDEAS.md)
+Done: dashboards, Shorts split + quantifier + nudge, Takeout/TL;DW import, accuracy
+hardening, shipping polish. Remaining: trends, source attribution, category breakdown,
+broader goals/recap.
 
 ## Conventions & gotchas
 
