@@ -47,7 +47,11 @@ feasibility in [`../tldw/docs/ANALYTICS_SPLIT.md`](../tldw/docs/ANALYTICS_SPLIT.
 | `2be979c` | **Accuracy hardening (IDEAS §1.3)**: pure `lib/watchgate.ts` `countableSeconds` — don't count hidden/background tabs (PiP counts), paused/ended, or ad playback; seek-reject + clamp now tested. Wired into `watchtime.ts`. |
 | `f09e599` `7d925a6` | **Quick wins**: CI (`.github/workflows/ci.yml`) + `minimum_chrome_version`; popup capture-health line (`lastRecordedAt`) + one-click pause toggle; **dead-code trim** (types/Settings/LifetimeStats cut to live fields, `addHistoryEntry` removed). |
 
-**Verified:** `npm run typecheck` clean, **147/147** tests, `npm run build` OK + CI on push.
+**Verified:** `npm run typecheck` clean, **145/145** tests, `npm run build` OK + CI on push.
+Hardened by two multi-agent review rounds (5-agent correctness + perf/memory + polish):
+unified video-id extraction, atomic recordWatchProgress, WATCH_PROGRESS clamp, import
+busy-guard, windowed-stats consistency, history quota cap (HISTORY_HARD_CAP), focus-visible
+a11y, shared `lib/format.ts`, and a ~46% options.css dead-CSS trim (26.5→14.3kB).
 **Build plan + polish + accuracy + step-2.5 trim all done** (live capture + dashboards +
 nudge + TL;DW/Takeout import + real icons/onboarding/docs + background/ad-aware capture +
 popup capture-health/pause + trimmed codebase). The extension loads, accrues data (incl. Shorts), renders the dashboards
