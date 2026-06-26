@@ -7,16 +7,17 @@
  * background reads settings and records the deltas — this script never reads
  * settings or summarizes anything (WDIW is local-only analytics).
  *
- * Self-contained: the YouTube meta scrapers (video id, channel info, video
- * meta) are inlined here so the script has no runtime dependencies beyond the
- * shared message type. Ported from TL;DW's content/watchtime.ts +
- * content/youtube.ts, preserving the watch-time double-counting fix.
+ * Mostly self-contained: the YouTube meta scrapers (video id, channel info,
+ * video meta) are inlined here; the only import is the pure `countableSeconds`
+ * accuracy gate (so that logic is unit-tested). Ported from TL;DW's
+ * content/watchtime.ts + content/youtube.ts, preserving the double-counting fix.
  *
- * Time tracking:
+ * Time tracking (accuracy rules live in lib/watchgate.ts, `countableSeconds`):
  *  - Uses `timeupdate` events; delta = currentTime − lastTime.
- *  - Counts forward motion consistent with continuous playback since the last
- *    tick (rate-corrected, seek-rejecting). Works at any playback speed and in
- *    throttled background tabs.
+ *  - Counts only forward motion consistent with continuous playback (rate-
+ *    corrected, seek-rejecting) AND only genuine watching: a HIDDEN/background
+ *    tab doesn't count (Picture-in-Picture still does), nor do paused/ended
+ *    ticks or AD playback (ads run in the same <video> on their own timeline).
  *  - On `seeked`, resets lastTime so the seek gap is not counted.
  *
  * Reporting triggers:
@@ -31,6 +32,7 @@
  */
 
 import type { WatchProgressMessage } from "../types";
+import { countableSeconds } from "../lib/watchgate";
 
 const log = (...args: unknown[]) => console.log("[WDIW WT]", ...args);
 
@@ -200,6 +202,13 @@ async function reportProgress(forced = false): Promise<void> {
 
 // ---- video element listener -------------------------------------------------
 
+/** True while the player is showing an ad (ads run in the same <video> element on
+ *  their own timeline, so their seconds must not count as watch time). */
+function isAdShowing(): boolean {
+  const player = document.querySelector(".html5-video-player");
+  return !!player && player.classList.contains("ad-showing");
+}
+
 function onTimeUpdate(): void {
   if (!video) return;
   const now = Date.now();
@@ -207,21 +216,23 @@ function onTimeUpdate(): void {
   lastTickAt = now;
   const t = video.currentTime;
   const delta = t - lastTime;
-  lastTime = t;
-  // Count forward motion consistent with continuous playback since the last
-  // tick. The expected content advance is (wall-clock elapsed × playbackRate); a
-  // real seek jumps far beyond that and is rejected — rate-correct AND
-  // seek-rejecting at any speed. CLAMP the gap: while paused/buffering/suspended
-  // ticks stop, so an un-clamped wallElapsed (seconds–minutes) would inflate the
-  // window and let a subsequent seek through. Normal playback ticks every
-  // ~0.25–1s, so 4s covers even a throttled background tab; the first tick (no
-  // prior timestamp) uses a 1s baseline.
-  const rate = video.playbackRate || 1;
-  const gap = wallElapsed > 0 ? Math.min(wallElapsed, 4) : 1;
-  const maxStep = gap * rate + 1;
-  if (delta > 0 && delta <= maxStep) {
-    totalWatched += delta;
-    pendingDelta += delta;
+  lastTime = t; // advance even when not counting, so resuming doesn't credit the gap
+
+  // Accuracy gate (pure, tested in watchgate.test.ts): credit only genuine
+  // watching — skip hidden/background tabs (PiP counts), paused/ended, and ads;
+  // reject seeks/rewinds; clamp the per-tick advance to plausible playback.
+  const credit = countableSeconds({
+    delta,
+    wallElapsed,
+    rate: video.playbackRate || 1,
+    hidden: document.hidden && !document.pictureInPictureElement,
+    paused: video.paused,
+    ended: video.ended,
+    adShowing: isAdShowing(),
+  });
+  if (credit > 0) {
+    totalWatched += credit;
+    pendingDelta += credit;
     // Snapshot while this video is verifiably the one playing (cheap reads
     // every tick; the meta querySelectors at most every 5s).
     lastKnownDuration = currentDuration() || lastKnownDuration;
