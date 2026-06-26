@@ -3,6 +3,7 @@ import type { HistoryExpiryDays, HistoryLimit, SearchHistoryEntry, Settings } fr
 import { getHistory, getSettings, mutateHistory, setHistory, setSettings } from "../../lib/storage";
 import { DEFAULT_SETTINGS, HISTORY_EXPIRY_OPTIONS, STORAGE_KEYS, USER_RATING_LABELS } from "../../lib/constants";
 import { expireOldEntries, trimToLimit } from "../../lib/history";
+import { fmtDurationFine } from "../../lib/format";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { Icon } from "../components/Icons";
 import { VirtualList } from "../components/VirtualList";
@@ -28,17 +29,6 @@ function formatDate(iso: string): string {
 function displayUrl(url: string): string {
   try { return new URL(url).hostname.replace("www.", "") + new URL(url).pathname.slice(0, 30); }
   catch { return url.slice(0, 40); }
-}
-
-/** Format a watch-time duration (seconds) as e.g. "1h 4m", "12m 30s", "45s". */
-function fmtSeconds(total: number): string {
-  const secs = Math.max(0, Math.round(total));
-  const h = Math.floor(secs / 3600);
-  const m = Math.floor((secs % 3600) / 60);
-  const s = secs % 60;
-  if (h > 0) return `${h}h ${m}m`;
-  if (m > 0) return `${m}m ${s}s`;
-  return `${s}s`;
 }
 
 /** Pill background for the engagement verdict. */
@@ -204,6 +194,7 @@ export function HistorySection() {
         <input
           type="text"
           placeholder="Search by video title, URL, or channel…"
+          aria-label="Search history"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -229,6 +220,7 @@ export function HistorySection() {
               <span className="history-opt-label">Keep at most</span>
               <select
                 className="setting-select"
+                aria-label="History limit"
                 value={String(settings.historyLimit)}
                 onChange={(e) => {
                   const v = e.target.value;
@@ -258,6 +250,7 @@ export function HistorySection() {
               <span className="history-opt-label">After</span>
               <select
                 className="setting-select"
+                aria-label="Auto-delete entries after"
                 value={String(settings.historyExpiryDays)}
                 disabled={!settings.autoExpireHistory}
                 onChange={(e) =>
@@ -359,11 +352,11 @@ export function HistorySection() {
                       <p className="field-label" style={{ marginBottom: 6 }}>Watch time</p>
                       {entry.durationSeconds ? (
                         <span>
-                          Watched {fmtSeconds(entry.watchedSeconds ?? 0)} of {fmtSeconds(entry.durationSeconds)} (
+                          Watched {fmtDurationFine(entry.watchedSeconds ?? 0)} of {fmtDurationFine(entry.durationSeconds)} (
                           {Math.min(100, Math.round(((entry.watchedSeconds ?? 0) / entry.durationSeconds) * 100))}%)
                         </span>
                       ) : (
-                        <span>Watched {fmtSeconds(entry.watchedSeconds ?? 0)}</span>
+                        <span>Watched {fmtDurationFine(entry.watchedSeconds ?? 0)}</span>
                       )}
                     </div>
                   </div>

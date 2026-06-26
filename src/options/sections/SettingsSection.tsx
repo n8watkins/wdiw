@@ -76,10 +76,10 @@ export function SettingsSection() {
           setImportMsg({ kind: "ok", text: "Already up to date — no new watches in that file." });
           return;
         }
-        const skipped = r.skipped > 0 ? `, skipped ${r.skipped.toLocaleString()} already imported` : "";
+        const skipped = r.skipped > 0 ? `, ${r.skipped.toLocaleString()} skipped` : "";
         setImportMsg({
           kind: "ok",
-          text: `Imported ${r.imported.toLocaleString()} watched video${r.imported === 1 ? "" : "s"} from Google Takeout${skipped}. Takeout has no durations, so these add to your video / channel / activity stats — not watch-time.`,
+          text: `Imported ${r.imported.toLocaleString()} video${r.imported === 1 ? "" : "s"} from Google Takeout${skipped}. (No durations in Takeout — these count toward your channels & activity, not watch-time.)`,
         });
         return;
       }
@@ -91,10 +91,10 @@ export function SettingsSection() {
         return;
       }
       const r = await importHistoryEntries(entries);
-      const skipped = r.skipped > 0 ? `, skipped ${r.skipped.toLocaleString()} already present` : "";
+      const skipped = r.skipped > 0 ? `, ${r.skipped.toLocaleString()} skipped` : "";
       setImportMsg({
         kind: "ok",
-        text: `Imported ${r.imported.toLocaleString()} video${r.imported === 1 ? "" : "s"}${skipped}. Your stats now include them.`,
+        text: `Imported ${r.imported.toLocaleString()} video${r.imported === 1 ? "" : "s"}${skipped} — watch-time & engagement included.`,
       });
     } catch (err) {
       const detail = err instanceof SyntaxError ? "That doesn't look like valid JSON." : err instanceof Error ? err.message : "Could not read that file.";

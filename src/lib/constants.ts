@@ -18,6 +18,17 @@ export const TLDW_STATS_KEY = "tldwStats";
  */
 export const CHANNEL_STATS_CAP = 500;
 
+/**
+ * Hard ceiling on the history LOG even when the user picks "unlimited" — a
+ * quota-safety backstop. chrome.storage.local is ~5MB (no `unlimitedStorage`
+ * permission) and a history row is ~380 bytes, so 5000 ≈ 1.9 MB leaves ample
+ * room. Without this, a full Google Takeout import (tens of thousands of rows)
+ * under "unlimited" could exceed the quota and make the write silently fail.
+ * The never-pruned `tldwStats` aggregates still retain the full picture; only the
+ * browseable recent log is bounded.
+ */
+export const HISTORY_HARD_CAP = 5000;
+
 /** Age thresholds (days) offered by the history auto-expiry control. */
 export const HISTORY_EXPIRY_OPTIONS = [7, 30, 90, 365] as const;
 

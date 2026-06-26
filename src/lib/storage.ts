@@ -8,6 +8,7 @@ import { computeEngagementVerdict, VERDICT_RANK } from "./engagement";
 import {
   DEFAULT_SETTINGS,
   extractVideoId,
+  HISTORY_HARD_CAP,
   localDateKey,
   STORAGE_KEYS,
   TLDW_STATS_KEY,
@@ -479,7 +480,8 @@ export async function importHistoryEntries(
     const merged = [...add, ...cur].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
-    return settings.historyLimit === "unlimited" ? merged : merged.slice(0, settings.historyLimit);
+    const cap = settings.historyLimit === "unlimited" ? HISTORY_HARD_CAP : settings.historyLimit;
+    return merged.slice(0, cap);
   });
 
   return result;
@@ -530,7 +532,10 @@ export async function importTakeoutEvents(
   // Channels pages (and the time-of-day heatmap, which read history) reflect
   // recent activity. The full history is retained in the never-pruned stats above.
   const settings = await getSettings();
-  const cap = settings.historyLimit === "unlimited" ? fresh.length : settings.historyLimit;
+  // Bound the history seed even under "unlimited" — a full Takeout import is tens
+  // of thousands of events and would blow the storage quota (the never-pruned
+  // stats above already hold the full picture; history is just the recent log).
+  const cap = settings.historyLimit === "unlimited" ? HISTORY_HARD_CAP : settings.historyLimit;
   const recent = [...fresh]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, cap)
@@ -539,7 +544,7 @@ export async function importTakeoutEvents(
     const merged = [...recent, ...cur].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
-    return settings.historyLimit === "unlimited" ? merged : merged.slice(0, settings.historyLimit);
+    return merged.slice(0, cap);
   });
 
   return result;

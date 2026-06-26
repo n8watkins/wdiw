@@ -9,6 +9,7 @@ import {
   type RankedChannel,
 } from "../../lib/stats";
 import { localDateKey, STORAGE_KEYS, TLDW_STATS_KEY } from "../../lib/constants";
+import { fmtDuration } from "../../lib/format";
 import {
   compareWindows,
   hourlyHeatmap,
@@ -22,19 +23,6 @@ import { algorithmFeedChannels, doomScrollSessions, longestDoomScroll } from "..
 // ---------------------------------------------------------------------------
 // Formatting helpers
 // ---------------------------------------------------------------------------
-
-/** Format seconds → "Xh Ym" / "Ym" / "<1m" */
-function fmtSeconds(totalSeconds: number): string {
-  const s = Math.round(totalSeconds);
-  if (s <= 0) return "0m";
-  const m = Math.floor(s / 60);
-  if (m < 1) return "<1m";
-  const h = Math.floor(m / 60);
-  const rem = m % 60;
-  if (h === 0) return `${rem}m`;
-  if (rem === 0) return `${h}h`;
-  return `${h}h ${rem}m`;
-}
 
 function fmtCount(n: number): string {
   return n.toLocaleString();
@@ -289,7 +277,7 @@ function WindowedView({
       <div className="stat-card" style={{ "--ca": "#14b8a6", "--cg": "rgba(20,184,166,0.22)", marginBottom: 16 } as CSSProperties}>
         <div className="stat-card-label">Time watched this {label}</div>
         <div className="stat-card-num" style={{ color: "#2dd4bf" }}>
-          {fmtSeconds(cur.watchedSeconds)}{" "}
+          {fmtDuration(cur.watchedSeconds)}{" "}
           <DeltaChip delta={pctDelta(cur.watchedSeconds, prev.watchedSeconds)} />
         </div>
         <div className="stats-hero-line">
@@ -438,8 +426,14 @@ export function StatsSection() {
 
   if (!stats) {
     return (
-      <div className="section-header">
-        <div className="section-title">Your watch stats</div>
+      <div>
+        <div className="section-header">
+          <div className="section-title">Your watch stats</div>
+          <div className="section-desc">
+            Where your YouTube time actually goes — counted locally, nothing leaves your browser.
+          </div>
+        </div>
+        <div className="stat-empty">Loading…</div>
       </div>
     );
   }
@@ -520,7 +514,7 @@ export function StatsSection() {
 
         <div className="stat-card" style={{ "--ca": "#14b8a6", "--cg": "rgba(20,184,166,0.22)" } as CSSProperties}>
           <div className="stat-card-label">Time watched</div>
-          <div className="stat-card-num" style={{ color: "#2dd4bf" }}>{fmtSeconds(stats.secondsWatched)}</div>
+          <div className="stat-card-num" style={{ color: "#2dd4bf" }}>{fmtDuration(stats.secondsWatched)}</div>
           <div className="stat-card-sub">tracked locally</div>
         </div>
 
@@ -536,7 +530,7 @@ export function StatsSection() {
             {topChannel ? topChannel.name : "—"}
           </div>
           <div className="stat-card-sub">
-            {topChannel ? `${fmtSeconds(topChannel.secondsWatched)} watched` : "no data yet"}
+            {topChannel ? `${fmtDuration(topChannel.secondsWatched)} watched` : "no data yet"}
           </div>
         </div>
       </div>
@@ -647,7 +641,7 @@ export function StatsSection() {
             emptyText="No watch time tracked per channel yet."
             meta={(c) => {
               const vids = `${fmtCount(c.videosWatched)} ${c.videosWatched === 1 ? "video" : "videos"}`;
-              return `${fmtSeconds(c.secondsWatched)} · ${vids}`;
+              return `${fmtDuration(c.secondsWatched)} · ${vids}`;
             }}
           />
         </div>
@@ -679,18 +673,18 @@ export function StatsSection() {
           <div className="stat-channel-row">
             <span className="stat-channel-name"><span style={{ color: "#fb7185" }}>●</span> Shorts</span>
             <span className="stat-channel-meta">
-              {fmtSeconds(shortsSeconds)} · {fmtCount(shortsCount)} {shortsCount === 1 ? "short" : "shorts"}
+              {fmtDuration(shortsSeconds)} · {fmtCount(shortsCount)} {shortsCount === 1 ? "short" : "shorts"}
             </span>
           </div>
           <div className="stat-channel-row">
             <span className="stat-channel-name"><span style={{ color: "#4ade80" }}>●</span> Long-form</span>
             <span className="stat-channel-meta">
-              {fmtSeconds(longSeconds)} · {fmtCount(longCount)} {longCount === 1 ? "video" : "videos"}
+              {fmtDuration(longSeconds)} · {fmtCount(longCount)} {longCount === 1 ? "video" : "videos"}
             </span>
           </div>
           {longestSession && (
             <div className="stats-window-note" style={{ marginTop: 12 }}>
-              Longest doom-scroll: <strong>{fmtCount(longestSession.count)}</strong> shorts in a row · {fmtSeconds(longestSession.seconds)}
+              Longest doom-scroll: <strong>{fmtCount(longestSession.count)}</strong> shorts in a row · {fmtDuration(longestSession.seconds)}
             </div>
           )}
         </div>
@@ -706,7 +700,7 @@ export function StatsSection() {
                   <span className="stat-channel-av" />
                   <span className="stat-channel-name">{c.channel}</span>
                   <span className="stat-channel-meta">
-                    {fmtCount(c.shortsCount)} {c.shortsCount === 1 ? "short" : "shorts"} · {fmtSeconds(c.shortsSeconds)}
+                    {fmtCount(c.shortsCount)} {c.shortsCount === 1 ? "short" : "shorts"} · {fmtDuration(c.shortsSeconds)}
                   </span>
                 </div>
               ))}

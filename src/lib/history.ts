@@ -1,13 +1,13 @@
 import type { SearchHistoryEntry, Settings } from "../types";
-import { USER_RATING_SCALE } from "./constants";
+import { HISTORY_HARD_CAP, USER_RATING_SCALE } from "./constants";
 
-/** Keep only the newest `limit` entries ("unlimited" keeps all). Newest first. */
+/** Keep only the newest `limit` entries. "unlimited" keeps up to HISTORY_HARD_CAP
+ *  (a quota-safety ceiling — see constants). Newest first. */
 export function trimToLimit(
   entries: SearchHistoryEntry[],
   limit: Settings["historyLimit"],
 ): SearchHistoryEntry[] {
-  if (limit === "unlimited") return entries;
-  return entries.slice(0, limit);
+  return entries.slice(0, limit === "unlimited" ? HISTORY_HARD_CAP : limit);
 }
 
 /**

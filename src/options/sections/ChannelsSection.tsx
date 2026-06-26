@@ -3,20 +3,10 @@ import type { SearchHistoryEntry } from "../../types";
 import { getHistory } from "../../lib/storage";
 import { computeChannelStats, type ChannelStats } from "../../lib/history";
 import { USER_RATING_LABELS, userAvgToLabel, STORAGE_KEYS } from "../../lib/constants";
+import { fmtDuration, fmtDurationFine } from "../../lib/format";
 import { VirtualList } from "../components/VirtualList";
 
 // ---- helpers ----------------------------------------------------------------
-
-/** Format a watch-time duration in seconds → "Xh Ym" / "Ym" / "<1m" / "0m". */
-function fmtSeconds(seconds: number): string {
-  if (seconds <= 0) return "0m";
-  if (seconds < 60) return "<1m";
-  const mins = Math.floor(seconds / 60);
-  const hrs = Math.floor(mins / 60);
-  const remMins = mins % 60;
-  if (hrs > 0) return remMins > 0 ? `${hrs}h ${remMins}m` : `${hrs}h`;
-  return `${mins}m`;
-}
 
 function timeAgo(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -210,7 +200,7 @@ function VideoRow({ entry }: { entry: SearchHistoryEntry }) {
             whiteSpace: "nowrap",
           }}
         >
-          {fmtSeconds(entry.watchedSeconds ?? 0)} / {fmtSeconds(entry.durationSeconds)}
+          {fmtDurationFine(entry.watchedSeconds ?? 0)} / {fmtDurationFine(entry.durationSeconds)}
         </span>
       )}
 
@@ -289,7 +279,7 @@ function ChannelCard({
             }}
           >
             <span style={{ fontSize: 12, color: "var(--muted)" }}>
-              {stats.count} {stats.count === 1 ? "video" : "videos"} · {fmtSeconds(stats.watchedSeconds)}
+              {stats.count} {stats.count === 1 ? "video" : "videos"} · {fmtDuration(stats.watchedSeconds)}
             </span>
             {/* Personal engagement pill */}
             {engagementLabel !== null && (
@@ -440,6 +430,7 @@ export function ChannelsSection() {
             <input
               type="text"
               placeholder="Search channels by name…"
+              aria-label="Search channels"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -463,6 +454,7 @@ export function ChannelsSection() {
             </p>
             <select
               className="setting-select"
+              aria-label="Sort channels"
               value={sortKey}
               onChange={(e) => setSortKey(e.target.value as SortKey)}
               style={{ fontSize: 12 }}

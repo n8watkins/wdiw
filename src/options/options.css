@@ -47,6 +47,21 @@ body {
   line-height: 1.5;
 }
 
+/* Keyboard focus ring — the app has hover states everywhere but no focus
+   styling, so keyboard users got nothing. One global rule covers every button,
+   link, select, nav item, and the custom toggle. */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+.nav-item:focus-visible,
+.toggle input:focus-visible + .toggle-track {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 /* ── Layout ─────────────────────────────────────────── */
 
 .layout {
@@ -1624,7 +1639,6 @@ textarea { min-height: 176px; font-family: "JetBrains Mono", "Fira Code", ui-mon
   color: var(--faint);
   text-align: center;
   padding: 24px 0;
-  font-style: italic;
 }
 
 .stats-since {

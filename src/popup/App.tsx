@@ -1,20 +1,8 @@
 import { useEffect, useState } from "react";
 import { getLifetimeStats, getSettings, setSettings } from "../lib/storage";
 import { localDateKey } from "../lib/constants";
+import { fmtDuration } from "../lib/format";
 import { shortsLimitStatus, type ShortsLimitStatus } from "../lib/shorts";
-
-/** seconds → "Xh Ym" / "Ym" / "<1m" / "0m" */
-function fmtSeconds(total: number): string {
-  const s = Math.round(total);
-  if (s <= 0) return "0m";
-  const m = Math.floor(s / 60);
-  if (m < 1) return "<1m";
-  const h = Math.floor(m / 60);
-  const rem = m % 60;
-  if (h === 0) return `${rem}m`;
-  if (rem === 0) return `${h}h`;
-  return `${h}h ${rem}m`;
-}
 
 /** Compact "time since" for the capture-health line. */
 function timeAgo(iso: string): string {
@@ -112,7 +100,7 @@ export function App() {
         ) : hasToday ? (
           <>
             <div style={{ fontSize: 30, fontWeight: 800, lineHeight: 1.1 }}>
-              {fmtSeconds(today.seconds)}
+              {fmtDuration(today.seconds)}
             </div>
             <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
               watched today · {today.videos} {today.videos === 1 ? "video" : "videos"}
@@ -128,7 +116,7 @@ export function App() {
                   fontWeight: 600,
                 }}
               >
-                📱 {fmtSeconds(today.shortsSeconds)}
+                📱 {fmtDuration(today.shortsSeconds)}
                 <span style={{ color: C.muted, fontWeight: 400 }}> on Shorts today</span>
               </div>
             )}
@@ -220,6 +208,7 @@ export function App() {
           </span>
           <button
             onClick={() => void toggleTracking()}
+            title="Pause tracking — same as Settings → Track engagement"
             style={{
               background: "none",
               border: `1px solid ${C.border}`,
@@ -238,7 +227,7 @@ export function App() {
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 12 }}>
         <span style={{ fontSize: 11, color: C.faint }}>
-          {fmtSeconds(lifetimeSeconds)} all-time
+          {fmtDuration(lifetimeSeconds)} all-time
         </span>
         <button
           onClick={() => void chrome.runtime.openOptionsPage()}
