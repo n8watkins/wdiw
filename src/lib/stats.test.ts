@@ -25,14 +25,14 @@ describe("trimActivity — trim to newest 366 dates", () => {
     const activity: Record<string, number> = {};
     for (let i = 0; i < 370; i++) {
       const d = new Date("2024-01-01");
-      d.setDate(d.getDate() + i);
+      d.setUTCDate(d.getUTCDate() + i);
       activity[d.toISOString().slice(0, 10)] = i + 1;
     }
     const result = trimActivity(activity, 366);
     const keys = Object.keys(result).sort();
     expect(keys).toHaveLength(366);
-    // The 4 oldest (2024-01-01 … 2024-01-03) should be gone; first kept is 2024-01-04.
-    expect(keys[0]).toBe("2024-01-04");
+    // The 4 oldest (2024-01-01 … 2024-01-04) should be gone; first kept is 2024-01-05.
+    expect(keys[0]).toBe("2024-01-05");
     // The newest key is still present.
     expect(keys[365]).toBe("2025-01-04");
   });
@@ -41,7 +41,7 @@ describe("trimActivity — trim to newest 366 dates", () => {
     const activity: Record<string, number> = {};
     for (let i = 0; i < 400; i++) {
       const d = new Date("2024-01-01");
-      d.setDate(d.getDate() + i);
+      d.setUTCDate(d.getUTCDate() + i);
       activity[d.toISOString().slice(0, 10)] = 1;
     }
     const result = trimActivity(activity);
