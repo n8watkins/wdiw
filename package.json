@@ -1,6 +1,6 @@
 {
   "name": "wdiw",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "WDIW (What Did I Watch?) — analyze your YouTube usage: per-channel watch time, engagement, and a Shorts / doom-scroll breakdown, computed locally. Companion to TL;DW.",
   "private": true,
   "license": "MIT",

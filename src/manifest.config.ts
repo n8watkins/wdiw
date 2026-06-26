@@ -3,7 +3,7 @@ import pkg from "../package.json";
 
 // WDIW (What Did I Watch?) — the post-watch "what have I been watching?" companion to TL;DW.
 // Local-only: it observes the videos you watch (no account, no servers) and
-// reports per-channel time + engagement. Icons are TL;DW placeholders for now.
+// reports per-channel time + engagement.
 export default defineManifest({
   manifest_version: 3,
   name: "WDIW — What Did I Watch?",

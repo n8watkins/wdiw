@@ -17,6 +17,9 @@ import type { LifetimeStats, RuntimeMessage } from "../types";
 // recordWatchProgress() under the storage write-lock. No Gemini, no AI, no
 // destination injectors — WDIW only records what you watch.
 
+// Flip to true to trace install/lifecycle in the worker console; ships silent.
+const DEBUG = false;
+
 /**
  * Bound storage even when the user goes quiet. History expiry/trim normally run
  * on write (inside recordWatchProgress), so a user who stops watching would keep
@@ -64,9 +67,11 @@ async function updateShortsBadge(): Promise<void> {
 }
 
 chrome.runtime.onInstalled.addListener(() => {
-  void getLifetimeStats().then((s) => {
-    console.log("[WDIW] installed — stats since", s.since || "(fresh install)");
-  });
+  if (DEBUG) {
+    void getLifetimeStats().then((s) => {
+      console.log("[WDIW] installed — stats since", s.since || "(fresh install)");
+    });
+  }
   void startupStorageSweep();
   void updateShortsBadge();
 });
