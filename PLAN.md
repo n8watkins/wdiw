@@ -63,7 +63,7 @@ engagement-aware, **live + local**, **desktop**, with a Shorts quantifier — op
 paired with a limit/nudge (demand skews "help me stop"). Avoid "yet another yearly
 wrapped" (YouTube shipped native Recap, Dec 2025).
 
-## Step 7 — Shorts split + doom-scroll quantifier (NEXT — the wedge)
+## Step 7 — Shorts split + doom-scroll quantifier (A–D done — commit fa5610f; E next)
 The competitive white space (ANALYTICS_SPLIT.md §3) and the strongest expressed demand
 ("help me **stop**"). Prioritized **ahead of Step 5**.
 
@@ -89,18 +89,24 @@ Decisions (locked with the user 2026-06-25):
   a **>3 min gap**.
 
 Sub-steps (each independently shippable):
-- **A. Make Shorts capture work** (`content/watchtime.ts`): match `/shorts/<id>` in
-  `currentVideoId()`, tag reports `isShort`, cap each play at duration but accumulate
-  loops into `shortsSeconds`, verify the Shorts-player duration/channel scrape.
-- **B. Data model** (`types` + `lib/storage`): `isShort?` on `WatchProgressMessage` +
-  `SearchHistoryEntry`; `shortsCount`/`shortsSeconds` (global + per-channel) on
-  `LifetimeStats`, optional/migration-safe.
-- **C. Sessions + algorithm-feed list** — pure, unit-tested helpers in `lib/stats.ts` /
-  `lib/dashboards.ts`.
-- **D. Dashboards** — Shorts-vs-long split card, Shorts quantifier (time / count /
-  longest session), "channels the algorithm feeds you" list, time-of-day heatmap; a
-  kind filter on Channels / History.
-- **E. Nudge / limit** — optional soft daily Shorts limit + toolbar badge / popup banner.
+- ✅ **A. Shorts capture** (`content/watchtime.ts`): `currentVideoId()` reads
+  `/shorts/<id>` (was `?v=`-only → Shorts never tracked at all); reports tagged
+  `isShort`. Loops accrue for free via the existing forward-motion accumulator.
+- ✅ **B. Data model** (`types` + `lib/storage`): `isShort` on the message + entry;
+  `shortsSeconds`/`shortsCount` (global + per-channel), migration-safe. Shorts get a
+  simplified model — no Engaged/Skimmed/Skipped verdict (they loop).
+- ✅ **C. Helpers** (`lib/shorts.ts`, +25 tests): `doomScrollSessions` (>3-min gap
+  split), `longestDoomScroll`, `algorithmFeedChannels`, `shortsVsLong`.
+- ◐ **D. Dashboards** — Stats now shows the Shorts-vs-long split card + longest
+  doom-scroll + "channels the algorithm feeds you". **Remaining:** the time-of-day
+  heatmap, and a Shorts/long **kind filter** on Channels / History.
+- ☐ **E. Nudge / limit** — optional soft daily Shorts limit + toolbar badge / popup
+  banner (the "help me stop" payoff). **Not started — the recommended next step.**
+
+Also landed (from the Step-4 deep review): **per-day watch-time attribution** —
+`LifetimeStats.dailySeconds`/`dailyShortsSeconds` bump on each delta (keyed by the day
+time was *actually* watched), fixing wrong "today"/"this week" totals for videos that
+span day boundaries and giving the Shorts quantifier an accurate daily number.
 
 **Data-access note (verified):** no API returns watch history, **with or without Google
 auth** (removed 2016-09-12). Build auth-free. Backfill = Google Takeout only (Step 5; no

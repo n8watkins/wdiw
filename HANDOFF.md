@@ -37,15 +37,17 @@ feasibility in [`../tldw/docs/ANALYTICS_SPLIT.md`](../tldw/docs/ANALYTICS_SPLIT.
 | `e0d5fd5` | **Step 3 — capture**: the live loop. `content/watchtime.ts` observes playback + scrapes channel/meta + broadcasts `WATCH_PROGRESS`; `background/index.ts` records it via `recordWatchProgress`. |
 | `8110e55` | Docs: `NAMES.md`, `IDEAS.md`. |
 | `c06bc99` | **Step 4 — dashboards UI**: watch-centric Stats / Channels / History / Settings + popup "today" card; options shell + `VirtualList`/`Icons`/`ConfirmDialog`/`options.css` ported; data-layer `watchedSeconds` + `activity` heatmap additions. |
+| `fa5610f` | **Step 7 (A–D)**: Shorts capture fix + data model + `lib/shorts.ts` helpers (doom-scroll sessions, algorithm-feed) + Stats Shorts split card. Plus deep-review fixes: per-day watch-time attribution (`dailySeconds`), lifted Channels expand state, windowed empty-state guard. |
 
-**Verified:** `npm run typecheck` clean, **79/79** tests, `npm run build` OK. The
-extension **loads, accrues data, and renders the dashboards**. A loadable build is also
-copied to `C:\Users\natha\Downloads\watchprint-dist` for unpacked install (Watchprint's
-`build` is plain `vite build` — no auto Windows copy; re-copy `dist/` after rebuilds).
+**Verified:** `npm run typecheck` clean, **104/104** tests, `npm run build` OK. The
+extension **loads, accrues data (now incl. Shorts), and renders the dashboards**. A
+loadable build is copied to `C:\Users\natha\Downloads\watchprint-dist` for unpacked
+install (Watchprint's `build` is plain `vite build` — no auto Windows copy; re-copy
+`dist/` after rebuilds).
 
-**NOT done yet:** **Shorts don't track** (the `?v=`-only `currentVideoId` bug — see Step 7
-in `PLAN.md`); the **Shorts split / doom-scroll quantifier** (Step 7, the next priority);
-the step 2.5 type-trim cleanup; migration/Takeout (step 5). The **name** is provisional.
+**NOT done yet:** Step 7 **E (Shorts nudge/limit)** + the time-of-day heatmap and the
+Channels/History **kind filter** (the rest of D) — see `PLAN.md` Step 7; the step 2.5
+type-trim cleanup; migration/Takeout (step 5). The **name** is provisional.
 
 ## How the capture works (the data flow)
 
@@ -77,14 +79,13 @@ shell + `VirtualList`/`Icons`/`ConfirmDialog`/`options.css` ported from TL;DW
 (pre-`dd34755`). Full breakdown in `PLAN.md` Step 4. Verified typecheck / 79 tests /
 build. Loadable build copied to `C:\Users\natha\Downloads\watchprint-dist`.
 
-### 2. ★ Step 7 — Shorts split + doom-scroll quantifier (NEXT — the wedge)
-The competitive white space + strongest expressed demand. **⚠️ Shorts don't track today**
-— `watchtime.ts` `currentVideoId()` reads only `?v=`, but Shorts are `/shorts/<id>`, so
-they report an empty id. Step A fixes capture; the full plan + locked decisions (count
-loops into *duration* not count; simplified Shorts engagement; "channels the algorithm
-feeds you"; time-of-day heatmap; in-scope doom-scroll nudge) live in `PLAN.md` Step 7.
-**Data-access verified:** no API returns watch history with or without Google auth
-(removed 2016) — build auth-free; backfill = Takeout only.
+### 2. ★ Step 7 — Shorts split + doom-scroll quantifier (A–D done; E next)
+Shorts now **track** (capture fixed) and Stats shows the Shorts-vs-long split, longest
+doom-scroll, and "channels the algorithm feeds you". **Next:** Step 7 **E** — the doom-
+scroll **nudge/limit** (the "help me stop" payoff), plus the time-of-day heatmap and a
+Shorts/long **kind filter** on Channels / History. Full status + locked decisions in
+`PLAN.md` Step 7. **Data-access verified:** no API returns watch history with or without
+Google auth (removed 2016) — build auth-free; backfill = Takeout only.
 
 ### 3. Step 2.5 — finish the trim (cleanup, low priority)
 `types/index.ts` still carries a dead summarizer/message/sponsor type block (left
