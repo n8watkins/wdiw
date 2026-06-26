@@ -9,9 +9,9 @@
 The playful TL;DW counterpart won out (decide → reflect). Displayed as **WDIW** with
 the expansion **"What Did I Watch?"** as the tagline (mirrors TL;DW / "Too Long; Didn't
 Watch"). Set in `package.json`, `manifest.config.ts`, and the popup/options copy. The
-internal `tldw*` storage keys and the GitHub repo/dir (`watchprint`) are intentionally
-left as-is for now (key rename needs a data migration — step 5). The shortlist below is
-kept for posterity.
+GitHub repo and the local dir are now both `wdiw`. Only the internal `tldw*` storage keys
+are intentionally left as-is for now (a key rename needs a data migration — step 5). The
+shortlist below is kept for posterity.
 
 ## Top picks (my lean)
 1. **Attune** — "tune in to how you actually watch." Attention-led, brandable, calm.

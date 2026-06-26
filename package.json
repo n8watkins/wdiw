@@ -1,6 +1,6 @@
 {
   "name": "wdiw",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "WDIW (What Did I Watch?) — analyze your YouTube usage: per-channel watch time, engagement, and a Shorts / doom-scroll breakdown, computed locally. Companion to TL;DW.",
   "private": true,
   "license": "MIT",
@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "build": "vite build"
+    "build": "node scripts/build-release.mjs",
+    "build:ci": "vite build"
   },
   "dependencies": {
     "@tanstack/react-virtual": "^3.14.3",

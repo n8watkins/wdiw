@@ -22,8 +22,9 @@ WDIW answers *"what/how much have I been watching?"*. They were one extension an
 
 - **Stack:** TypeScript + Vite + `@crxjs/vite-plugin`; React for popup/options;
   vanilla TS content script; Vitest. Deps: only `react`, `react-dom`, `@tanstack/react-virtual`.
-- **Repo:** `github.com/n8watkins/wdiw` (**private**), branch `master`. Working dir is
-  still `watchprint/` (only the GitHub repo was renamed).
+- **Repo:** `github.com/n8watkins/wdiw` (**private**), branch `master`. The GitHub repo
+  and the local working dir are both `wdiw` (only the internal `tldw*` storage keys keep
+  the old name — they need a data migration to rename).
 - **Separate repo — NO monorepo.** Shared code is **copied** from `../tldw` by design
   (the user chose two independent extensions over DRY). Copy + adapt, don't import across.
 - **Local-only:** observes the videos you watch (SponsorBlock pattern), stores in
@@ -52,9 +53,10 @@ WDIW answers *"what/how much have I been watching?"*. They were one extension an
 
 **Verified:** `npm run typecheck` clean, **145/145 tests**, `npm run build` OK. The
 extension loads, accrues data (incl. Shorts), renders all dashboards, shows the doom-scroll
-nudge, and imports TL;DW/Takeout files. A loadable build is copied to
-`C:\Users\natha\Downloads\watchprint-dist` (re-copy `dist/` after any rebuild — `build`
-has no auto Windows copy).
+nudge, and imports TL;DW/Takeout files. `npm run build` (TL;DW-style `build-release.mjs`)
+bumps the patch version, runs `vite build`, and **auto-copies `dist/` to
+`C:\Users\natha\Projects\Tools\wdiw`** — the folder Chrome loads from. (CI uses
+`build:ci` = plain `vite build`, no bump/copy.)
 
 **Two reviews stand behind the current state** — a 5-agent correctness pass (capture,
 storage, migration, helpers, UI) and a 2-agent perf/memory + polish pass. Verdict: core
@@ -91,7 +93,7 @@ content/watchtime.ts ──WATCH_PROGRESS──▶ background/index.ts ──▶
 Everything is verified by unit tests + static review, but **capture has never been run
 against real YouTube** — and it leans on YouTube's DOM (`watchtime.ts` selectors) and now
 gates on hidden/ad state. **This should gate any store submission.** Load `dist` (or
-`C:\Users\natha\Downloads\watchprint-dist`), watch a few long videos **and Shorts**, set a
+`C:\Users\natha\Projects\Tools\wdiw`), watch a few long videos **and Shorts**, set a
 Shorts limit, and confirm: per-channel time/engagement accrue, the Shorts split + heatmaps
 populate, the badge/banner behave, the popup "last tracked" updates. The fragile bit is the
 DOM scraping in `getChannelInfo`/`getVideoMeta`/`isAdShowing` — fix selectors if YouTube changed.
