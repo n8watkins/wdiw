@@ -63,7 +63,7 @@ engagement-aware, **live + local**, **desktop**, with a Shorts quantifier — op
 paired with a limit/nudge (demand skews "help me stop"). Avoid "yet another yearly
 wrapped" (YouTube shipped native Recap, Dec 2025).
 
-## Step 7 — Shorts split + doom-scroll quantifier (A–D done — commit fa5610f; E next)
+## Step 7 — Shorts split + doom-scroll quantifier (A–E done; remaining: time-of-day heatmap + kind filter)
 The competitive white space (ANALYTICS_SPLIT.md §3) and the strongest expressed demand
 ("help me **stop**"). Prioritized **ahead of Step 5**.
 
@@ -100,8 +100,10 @@ Sub-steps (each independently shippable):
 - ◐ **D. Dashboards** — Stats now shows the Shorts-vs-long split card + longest
   doom-scroll + "channels the algorithm feeds you". **Remaining:** the time-of-day
   heatmap, and a Shorts/long **kind filter** on Channels / History.
-- ☐ **E. Nudge / limit** — optional soft daily Shorts limit + toolbar badge / popup
-  banner (the "help me stop" payoff). **Not started — the recommended next step.**
+- ✅ **E. Nudge / limit** — optional daily Shorts limit (Settings → Doom-scroll guard;
+  off by default) → toolbar badge with today's Shorts minutes (green→amber→red) +
+  popup banner. Shared pure `shortsLimitStatus` (off/ok/warn/over) drives both, off the
+  never-pruned `dailyShortsSeconds`. (On-page Shorts banner = a possible future add.)
 
 Also landed (from the Step-4 deep review): **per-day watch-time attribution** —
 `LifetimeStats.dailySeconds`/`dailyShortsSeconds` bump on each delta (keyed by the day

@@ -38,16 +38,18 @@ feasibility in [`../tldw/docs/ANALYTICS_SPLIT.md`](../tldw/docs/ANALYTICS_SPLIT.
 | `8110e55` | Docs: `NAMES.md`, `IDEAS.md`. |
 | `c06bc99` | **Step 4 — dashboards UI**: watch-centric Stats / Channels / History / Settings + popup "today" card; options shell + `VirtualList`/`Icons`/`ConfirmDialog`/`options.css` ported; data-layer `watchedSeconds` + `activity` heatmap additions. |
 | `fa5610f` | **Step 7 (A–D)**: Shorts capture fix + data model + `lib/shorts.ts` helpers (doom-scroll sessions, algorithm-feed) + Stats Shorts split card. Plus deep-review fixes: per-day watch-time attribution (`dailySeconds`), lifted Channels expand state, windowed empty-state guard. |
+| `0a6730c` | **Rename → WDIW** ("What Did I Watch?"). GitHub repo also renamed to `n8watkins/wdiw`. Internal `tldw*` keys + working dir unchanged. |
+| `b10428c` `4d1c325` | **Step 7-E**: doom-scroll nudge — daily Shorts limit (Settings) → toolbar badge + popup banner (`shortsLimitStatus`). `4d1c325` = a second deep review's fixes (global `videosWatched` counter for a consistent Shorts/long split; badge listener short-circuit; nudge-number reconciliation). |
 
-**Verified:** `npm run typecheck` clean, **104/104** tests, `npm run build` OK. The
-extension **loads, accrues data (now incl. Shorts), and renders the dashboards**. A
-loadable build is copied to `C:\Users\natha\Downloads\watchprint-dist` for unpacked
-install (Watchprint's `build` is plain `vite build` — no auto Windows copy; re-copy
+**Verified:** `npm run typecheck` clean, **109/109** tests, `npm run build` OK. The
+extension **loads, accrues data (incl. Shorts), renders the dashboards, and shows the
+doom-scroll nudge**. A loadable build is copied to `C:\Users\natha\Downloads\watchprint-dist`
+for unpacked install (`build` is plain `vite build` — no auto Windows copy; re-copy
 `dist/` after rebuilds).
 
-**NOT done yet:** Step 7 **E (Shorts nudge/limit)** + the time-of-day heatmap and the
-Channels/History **kind filter** (the rest of D) — see `PLAN.md` Step 7; the step 2.5
-type-trim cleanup; migration/Takeout (step 5). (Name chosen: **WDIW**.)
+**NOT done yet:** the **time-of-day heatmap** + a Shorts/long **kind filter** on
+Channels/History (the rest of Step 7-D); the step 2.5 type-trim cleanup; migration/Takeout
+(step 5). (Name chosen: **WDIW**; GitHub repo is `n8watkins/wdiw`.)
 
 ## How the capture works (the data flow)
 
@@ -79,13 +81,13 @@ shell + `VirtualList`/`Icons`/`ConfirmDialog`/`options.css` ported from TL;DW
 (pre-`dd34755`). Full breakdown in `PLAN.md` Step 4. Verified typecheck / 79 tests /
 build. Loadable build copied to `C:\Users\natha\Downloads\watchprint-dist`.
 
-### 2. ★ Step 7 — Shorts split + doom-scroll quantifier (A–D done; E next)
-Shorts now **track** (capture fixed) and Stats shows the Shorts-vs-long split, longest
-doom-scroll, and "channels the algorithm feeds you". **Next:** Step 7 **E** — the doom-
-scroll **nudge/limit** (the "help me stop" payoff), plus the time-of-day heatmap and a
-Shorts/long **kind filter** on Channels / History. Full status + locked decisions in
-`PLAN.md` Step 7. **Data-access verified:** no API returns watch history with or without
-Google auth (removed 2016) — build auth-free; backfill = Takeout only.
+### 2. ★ Step 7 — Shorts split + doom-scroll quantifier (A–E done)
+Shorts track (capture fixed); Stats shows the Shorts-vs-long split, longest doom-scroll,
+and "channels the algorithm feeds you"; and the **nudge** ships — a daily Shorts limit
+(Settings) drives a toolbar badge + popup banner. **Remaining in Step 7:** the
+**time-of-day heatmap** and a Shorts/long **kind filter** on Channels / History (the rest
+of D). Full status in `PLAN.md` Step 7. **Data-access verified:** no API returns watch
+history with or without Google auth (removed 2016) — build auth-free; backfill = Takeout.
 
 ### 3. Step 2.5 — finish the trim (cleanup, low priority)
 `types/index.ts` still carries a dead summarizer/message/sponsor type block (left
