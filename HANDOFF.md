@@ -4,164 +4,149 @@ Zero-context handoff. Read this + [`PLAN.md`](PLAN.md) + [`IDEAS.md`](IDEAS.md) 
 [`NAMES.md`](NAMES.md) first; they answer most questions — don't re-ask the user
 what these already decide. _Last updated: 2026-06-25._
 
+> **TL;DR:** WDIW is **feature-complete and review-hardened**. The whole build plan
+> (steps 1–7) + migration + shipping polish are done; the codebase passed two
+> multi-agent review rounds. The remaining work is **validation** (it has never been
+> run live in a real browser) and the **product roadmap** — not core build.
+
 ## Project summary
 
 **WDIW** ("What Did I Watch?") is a **local-only Manifest V3 Chrome extension** that
 analyzes **your own YouTube usage** — per-channel **watch time** and **engagement**
-(which channels you finish vs. abandon). It's the **post-watch** companion to
-**TL;DW** (a YouTube summarizer at `../tldw`): TL;DW answers *"should I watch /
-summarize this?"*, WDIW answers *"what/how much have I been watching?"*. They
-were one extension and were **split** (rationale + competitive research + data-access
-feasibility in [`../tldw/docs/ANALYTICS_SPLIT.md`](../tldw/docs/ANALYTICS_SPLIT.md)).
+(which channels you finish vs. abandon), a **Shorts-vs-long-form split + doom-scroll
+quantifier**, and **activity / peak-hours heatmaps**. It's the **post-watch** companion
+to **TL;DW** (a YouTube summarizer at `../tldw`): TL;DW answers *"should I watch this?"*,
+WDIW answers *"what/how much have I been watching?"*. They were one extension and were
+**split** (rationale + competitive research + data-access feasibility in
+[`../tldw/docs/ANALYTICS_SPLIT.md`](../tldw/docs/ANALYTICS_SPLIT.md)).
 
 - **Stack:** TypeScript + Vite + `@crxjs/vite-plugin`; React for popup/options;
-  vanilla TS content script; Vitest.
-- **Repo:** `github.com/n8watkins/wdiw` (**private**), branch `master`. Working dir is still `watchprint/`.
-- **Separate repo — NO monorepo.** Shared code is **copied** from `../tldw` by
-  design (the user chose two independent extensions over DRY; duplication accepted).
-  When you need a helper/component from TL;DW, **copy + adapt it**, don't import across.
-- **Local-only:** observes the videos you watch (the SponsorBlock pattern), stores in
-  `chrome.storage.local`. No account, no servers. **No historical backfill** — it only
-  sees videos watched *while installed* (Takeout import is planned, step 5).
-- **Run:** `npm run dev` (live). `npm run build` → `dist/` (load unpacked at
-  `chrome://extensions`). **`build` is plain `vite build` — it does NOT auto-bump the
-  version** (unlike TL;DW). **Gate before commit:** `npm run typecheck` && `npm test`
-  (**78 tests**, all pure-logic).
+  vanilla TS content script; Vitest. Deps: only `react`, `react-dom`, `@tanstack/react-virtual`.
+- **Repo:** `github.com/n8watkins/wdiw` (**private**), branch `master`. Working dir is
+  still `watchprint/` (only the GitHub repo was renamed).
+- **Separate repo — NO monorepo.** Shared code is **copied** from `../tldw` by design
+  (the user chose two independent extensions over DRY). Copy + adapt, don't import across.
+- **Local-only:** observes the videos you watch (SponsorBlock pattern), stores in
+  `chrome.storage.local`. No account, no servers, no analytics. Live capture only sees
+  videos watched *while installed*; **Google Takeout import** (Settings → Import) is the
+  historical backfill.
+- **Run / gate:** `npm run build` → `dist/` (load unpacked at `chrome://extensions`).
+  `build` is plain `vite build` — NO version bump. **Gate before every commit:**
+  `npm run typecheck` && `npm test` (**145 tests**, pure-logic) — CI also runs these on push.
 
-## State (done this session — all committed + pushed)
+## State — feature-complete + hardened (all committed + pushed)
 
 | Commit | What |
 |---|---|
-| `753be9c` | **Step 1 — foundation**: build infra cloned from TL;DW; analytics data layer copied + tested; minimal popup/options. |
-| `caa547f` | **Step 2 — trim**: data layer cut to analytics-only (deleted `profiles.ts`; dropped Gemini/cache/tags/pending from storage/constants/types). |
-| `e0d5fd5` | **Step 3 — capture**: the live loop. `content/watchtime.ts` observes playback + scrapes channel/meta + broadcasts `WATCH_PROGRESS`; `background/index.ts` records it via `recordWatchProgress`. |
-| `8110e55` | Docs: `NAMES.md`, `IDEAS.md`. |
-| `c06bc99` | **Step 4 — dashboards UI**: watch-centric Stats / Channels / History / Settings + popup "today" card; options shell + `VirtualList`/`Icons`/`ConfirmDialog`/`options.css` ported; data-layer `watchedSeconds` + `activity` heatmap additions. |
-| `fa5610f` | **Step 7 (A–D)**: Shorts capture fix + data model + `lib/shorts.ts` helpers (doom-scroll sessions, algorithm-feed) + Stats Shorts split card. Plus deep-review fixes: per-day watch-time attribution (`dailySeconds`), lifted Channels expand state, windowed empty-state guard. |
-| `0a6730c` | **Rename → WDIW** ("What Did I Watch?"). GitHub repo also renamed to `n8watkins/wdiw`. Internal `tldw*` keys + working dir unchanged. |
-| `b10428c` `4d1c325` | **Step 7-E**: doom-scroll nudge — daily Shorts limit (Settings) → toolbar badge + popup banner (`shortsLimitStatus`). `4d1c325` = a second deep review's fixes (global `videosWatched` counter for a consistent Shorts/long split; badge listener short-circuit; nudge-number reconciliation). |
-| `8f866c5` | **Step 7-D polish (completes Step 7)**: "When you watch" time-of-day heatmap (`dashboards.hourlyHeatmap`) + Shorts/Long/All kind filter on Channels + History. |
-| `54bf935` | **Step 5a — TL;DW import bridge**: `lib/migrate.ts` (parse/collapse/fold) + `storage.importHistoryEntries` + Settings → Import card. Imports a TL;DW history export (or WDIW backup) and rebuilds the stats. |
-| `4214df8` | **Step 5b — Google Takeout importer (completes Step 5)**: `parseTakeoutHistory` (cleans the Takeout array) + `importTakeoutEvents` (watermarked, idempotent) + auto-detect in Settings → Import + "Most-watched channels" by-count card. Takeout = counts/activity only (no durations/engagement; Shorts indistinguishable). |
-| `a51827b` | **Shipping polish**: real WDIW icons (`scripts/gen-icons.mjs`, dependency-free) replacing tl-dw placeholders; first-run onboarding banner (`firstRunNoticeSeen`); README/PRIVACY/LICENSE/STORE docs. |
-| `2be979c` | **Accuracy hardening (IDEAS §1.3)**: pure `lib/watchgate.ts` `countableSeconds` — don't count hidden/background tabs (PiP counts), paused/ended, or ad playback; seek-reject + clamp now tested. Wired into `watchtime.ts`. |
-| `f09e599` `7d925a6` | **Quick wins**: CI (`.github/workflows/ci.yml`) + `minimum_chrome_version`; popup capture-health line (`lastRecordedAt`) + one-click pause toggle; **dead-code trim** (types/Settings/LifetimeStats cut to live fields, `addHistoryEntry` removed). |
+| `753be9c`…`8110e55` | **Steps 1–3**: foundation; trim data layer to analytics-only; live capture loop (`watchtime.ts` → `WATCH_PROGRESS` → `recordWatchProgress`). |
+| `c06bc99` | **Step 4 — dashboards UI**: watch-centric Stats / Channels / History / Settings + popup "today" card; options shell + components + `options.css` ported from TL;DW pre-`dd34755`. |
+| `fa5610f` `8f866c5` | **Step 7 — Shorts**: capture fix (`/shorts/<id>`), `lib/shorts.ts` (doom-scroll sessions, algorithm-feed), Stats split card, per-day attribution (`dailySeconds`), time-of-day heatmap, Shorts/Long/All kind filter. |
+| `b10428c` `4d1c325` | **Step 7-E — doom-scroll nudge**: daily Shorts limit → toolbar badge + popup banner (`shortsLimitStatus`). |
+| `0a6730c` | **Rename → WDIW**; GitHub repo → `n8watkins/wdiw`. |
+| `54bf935` `4214df8` | **Step 5 — migration**: `lib/migrate.ts` + `storage.importHistoryEntries` (TL;DW/WDIW export) + `importTakeoutEvents` (Google Takeout, watermarked). Settings → Import auto-detects the file. |
+| `a51827b` | **Shipping polish**: real WDIW icons (`scripts/gen-icons.mjs`), first-run onboarding, README/PRIVACY/LICENSE/STORE. |
+| `2be979c` | **Accuracy hardening** (IDEAS §1.3): pure `lib/watchgate.ts` `countableSeconds` — ignore hidden/background tabs (PiP counts), paused/ended, ads; seek-reject + clamp. |
+| `f09e599` `7d925a6` | **Quick wins**: CI + `minimum_chrome_version`; popup capture-health (`lastRecordedAt`) + pause toggle; **dead summarizer code trimmed** (types/Settings/LifetimeStats). |
+| `72e5d92` | **Correctness-review fixes** (5-agent): unified video-id extraction, atomic `recordWatchProgress`, `WATCH_PROGRESS` clamp, import busy-guard, windowed-stats consistency, ConfirmDialog a11y, dead `watchedSecondsFromHistory` removed. |
+| `edc3765` `33c90c5` | **Perf/polish-review fixes**: `HISTORY_HARD_CAP` (quota safety under "unlimited"), global `:focus-visible`, aria-labels, shared `lib/format.ts`, ~46% dead `options.css` trim (26.5→14.3 kB). |
 
-**Verified:** `npm run typecheck` clean, **145/145** tests, `npm run build` OK + CI on push.
-Hardened by two multi-agent review rounds (5-agent correctness + perf/memory + polish):
-unified video-id extraction, atomic recordWatchProgress, WATCH_PROGRESS clamp, import
-busy-guard, windowed-stats consistency, history quota cap (HISTORY_HARD_CAP), focus-visible
-a11y, shared `lib/format.ts`, and a ~46% options.css dead-CSS trim (26.5→14.3kB).
-**Build plan + polish + accuracy + step-2.5 trim all done** (live capture + dashboards +
-nudge + TL;DW/Takeout import + real icons/onboarding/docs + background/ad-aware capture +
-popup capture-health/pause + trimmed codebase). The extension loads, accrues data (incl. Shorts), renders the dashboards
-(per-channel time/engagement, Shorts split, peak-hours heatmap, kind filters), and shows
-the doom-scroll nudge. A loadable build is copied to `C:\Users\natha\Downloads\watchprint-dist`
-for unpacked install (`build` is plain `vite build` — no auto Windows copy; re-copy
-`dist/` after rebuilds).
+**Verified:** `npm run typecheck` clean, **145/145 tests**, `npm run build` OK. The
+extension loads, accrues data (incl. Shorts), renders all dashboards, shows the doom-scroll
+nudge, and imports TL;DW/Takeout files. A loadable build is copied to
+`C:\Users\natha\Downloads\watchprint-dist` (re-copy `dist/` after any rebuild — `build`
+has no auto Windows copy).
 
-**NOT done yet:** the build-plan steps are **done** (1–7 + migration). Remaining work is
-polish/roadmap: the step 2.5 type-trim cleanup (dead summarizer types/CSS), per-hour
-never-pruned data so the time-of-day heatmap survives history pruning, accuracy hardening,
-and the `IDEAS.md` roadmap. (Name: **WDIW**; repo `n8watkins/wdiw`.)
+**Two reviews stand behind the current state** — a 5-agent correctness pass (capture,
+storage, migration, helpers, UI) and a 2-agent perf/memory + polish pass. Verdict: core
+sound and well-bounded; the real findings were fixed in the commits above. Items
+deliberately **left as-is** (don't "fix" without reason): StatsSection render recompute
+(bounded inputs + 300ms debounce — memoizing is net-negative), the toolbar-badge midnight
+lag (popup is always live-correct; a clean fix needs the `alarms` permission, which the
+user **declined** to keep the permission surface minimal), and a few harmless
+descendant-of-dead CSS rules.
 
-## How the capture works (the data flow)
+## How capture works (data flow)
 
 ```
-content/watchtime.ts  ──WATCH_PROGRESS──▶  background/index.ts  ──▶  recordWatchProgress (storage.ts)
-  observe video element                       getSettings()              writes history (per-video)
-  accumulate content-seconds                  gated on trackEngagement   bumps tldwStats:
-  (seek-reject, double-count-safe)                                         · lifetime (secondsWatched…)
-  scrape channel/duration (inlined)                                        · per-channel `channels` map
-  send every ~10s / visibility / nav                                         (secondsWatched, videosWatched,
-                                                                              engaged/skimmed/skipped, lastWatched)
+content/watchtime.ts ──WATCH_PROGRESS──▶ background/index.ts ──▶ recordWatchProgress (storage.ts)
+  observe <video>, accumulate seconds        clamp delta/duration     ATOMIC (one write-lock):
+  via countableSeconds (lib/watchgate.ts:     gate on trackEngagement  · history stub (per-video)
+   skip hidden/paused/ad, reject seeks)                                · tldwStats: lifetime + per-day
+  tag isShort, scrape channel/duration                                   maps + per-channel `channels`
+  send every ~10s / visibility / nav
 ```
-- **Engagement** verdict (Engaged/Skimmed/Skipped) is computed from watch-% by
-  `lib/engagement.ts` (`computeEngagementVerdict`).
-- **Storage keys** (`chrome.storage.local`): **`tldwStats`** (lifetime + per-channel
-  `channels` map), **`history`** (the watch log), **`settings`**. ⚠️ Keys are still
-  named `tldw*` — harmless (storage is per-extension, no collision with TL;DW), rename
-  is **optional** and would need a migration.
-- **Ready-to-use analytics helpers** (already present + tested, just not wired to UI):
-  `lib/stats.ts` (`topChannelsByTime`, `mostEngagedChannels`, `engagedRatio`,
-  `trimChannelStats`), `lib/dashboards.ts` (week/month/year window aggregation),
-  `lib/history.ts` (`computeChannelStats`).
+- **Engagement verdict** (Engaged/Skimmed/Skipped) from watch-% in `lib/engagement.ts`.
+  Shorts get a **simplified model** (no verdict — they loop). Shorts seconds still count.
+- **Storage keys** (`chrome.storage.local`): **`tldwStats`** (never-pruned lifetime +
+  per-channel + per-day maps; key name is historical, harmless), **`history`** (the
+  pruned watch log), **`settings`**. All maps are bounded: channels 500, activity/daily
+  366 days, history by `historyLimit` (capped at `HISTORY_HARD_CAP`=5000 even under "unlimited").
+- **Stats page reads the never-pruned `tldwStats`** (lifetime-accurate); **Channels/History
+  pages read `computeChannelStats(history)`** (recent window). They can legitimately differ
+  after pruning — surfaced honestly in the UI, don't "reconcile" blindly.
 
 ## Next steps (ordered)
 
-### 1. ✅ Step 4 — Dashboards UI (done — commit `c06bc99`)
-Watch-centric Stats / Channels / History / Settings + a popup "today" card; the options
-shell + `VirtualList`/`Icons`/`ConfirmDialog`/`options.css` ported from TL;DW
-(pre-`dd34755`). Full breakdown in `PLAN.md` Step 4. Verified typecheck / 79 tests /
-build. Loadable build copied to `C:\Users\natha\Downloads\watchprint-dist`.
+### 1. ★ Verify it live in a real browser (the one unvalidated assumption)
+Everything is verified by unit tests + static review, but **capture has never been run
+against real YouTube** — and it leans on YouTube's DOM (`watchtime.ts` selectors) and now
+gates on hidden/ad state. **This should gate any store submission.** Load `dist` (or
+`C:\Users\natha\Downloads\watchprint-dist`), watch a few long videos **and Shorts**, set a
+Shorts limit, and confirm: per-channel time/engagement accrue, the Shorts split + heatmaps
+populate, the badge/banner behave, the popup "last tracked" updates. The fragile bit is the
+DOM scraping in `getChannelInfo`/`getVideoMeta`/`isAdShowing` — fix selectors if YouTube changed.
 
-### 2. ✅ Step 7 — Shorts split + doom-scroll quantifier (complete)
-Shorts track (capture fixed); Stats shows the Shorts-vs-long split, longest doom-scroll,
-"channels the algorithm feeds you", and the peak-hours heatmap; Channels + History have a
-kind filter; and the **nudge** ships (daily Shorts limit → toolbar badge + popup banner).
+### 2. ★ Run the user's real Google Takeout export through the importer
+The user requested their Takeout (`watch-history.json`) and it's on the way. When it lands,
+import it (Settings → Import) and validate `parseTakeoutHistory` / `importTakeoutEvents`
+against real data (cleaning, channel attribution, the activity/peak-hours heatmaps, the
+"Most-watched channels" by-count card). Caveat (by design): Takeout has **no durations**,
+so it backfills counts/channels/activity, not watch-time.
 
-### 3. ✅ Step 5 — Migration from TL;DW + Takeout backfill (complete)
-Settings → Import loads, auto-detecting the file: a **TL;DW history export / WDIW backup**
-(`importHistoryEntries`, rebuilds time + engagement) or a **Google Takeout
-`watch-history.json`** (`parseTakeoutHistory` + `importTakeoutEvents`, watermarked;
-counts/activity only — no durations/engagement, Shorts indistinguishable). **Data-access
-verified:** no API returns watch history with or without Google auth (removed 2016);
-Takeout (manual self-export) is the only ToS-clean backfill.
+### 3. Chrome Web Store submission (human steps)
+Take the `STORE.md` screenshot set (Stats / Channels / Shorts split / popup / import),
+register a CWS developer account ($5), zip `dist`, paste `STORE.md` copy + the `PRIVACY.md`
+URL, complete the data-practices form, submit. Decide repo visibility (currently private;
+`README`/`STORE` reference it).
 
-### ★ Next — verify live + roadmap
-Build plan (1–7 + migration), shipping polish, and **accuracy hardening** (✅ background/
-ad/seek-aware, `lib/watchgate.ts`) are all done. **#1 still-open: live browser verification**
-— capture has never been run for real (and now gates on hidden/ad state, so it must be
-checked live before store submission). Then roadmap candidates: trends & source-attribution
-(IDEAS 2.6–2.7); never-pruned per-hour data (so the time-of-day heatmap isn't limited to
-retained history); category breakdown + broader goals; and optionally renaming the `tldw*`
-storage keys (needs a migration). A real Google Takeout export is on its way from the user —
-exercise `parseTakeoutHistory` / `importTakeoutEvents` against it when it lands.
+### 4. Product roadmap → [`IDEAS.md`](IDEAS.md)
+Remaining wedge/moat features: **trends over time** (rising/fading channels — the windowed
+view is a basic version), **source attribution** ("where I found this" — high-effort/niche),
+category/topic breakdown, broader goals/recap. Honest take recorded in IDEAS: trends is
+mostly there, source-attribution is niche — confirm interest before building.
 
-### 4. ✅ Step 2.5 — dead-code trim (done — commit `7d925a6`)
-Removed the dead summarizer/sponsor/message types, trimmed `Settings`/`LifetimeStats`/
-`DEFAULT_SETTINGS`/`emptyLifetimeStats` to live fields, dropped the never-called
-`addHistoryEntry`. `options.css` left as-is (harmless; trimming blind is risky). The
-`tldw*` storage **key names** are still unchanged (rename needs a migration).
-
-### 5. Product roadmap → [`IDEAS.md`](IDEAS.md)
-Done: dashboards, Shorts split + quantifier + nudge, Takeout/TL;DW import, accuracy
-hardening, shipping polish. Remaining: trends, source attribution, category breakdown,
-broader goals/recap.
+### 5. Low-priority cleanup (optional)
+Rename the internal `tldw*` storage keys → `wdiw*` (needs a one-time migration of stored
+data); a never-pruned per-hour store so the time-of-day heatmap isn't limited to retained
+history. Neither is blocking.
 
 ## Conventions & gotchas
-
-- **Two independent repos, copy not import.** Adapt TL;DW code into WDIW files.
-- **`npm run build` = plain `vite build`** — no version bump, no Windows copy (those
-  were TL;DW-isms). Output is `dist/`.
-- **Commit** after each logical change with the trailer
-  `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>`; push to
-  `origin` (private repo). Gate: typecheck + test.
+- **Copy not import** from `../tldw` (two independent repos).
+- **`npm run build` = plain `vite build`** — no version bump, no Windows copy. Gate every
+  commit with `npm run typecheck` && `npm test` (145 tests); commit with the trailer
+  `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>`; push to `origin`.
 - **The data layer here is ACTIVE and wired** (engagement engine, `recordWatchProgress`,
-  per-channel helpers) — the opposite of TL;DW, where those same modules are now dead
-  code post-decoupling.
-- **No historical backfill** from live capture is inherent — surface honest empty states
-  ("tracks from install forward"); the Takeout import (Settings → Import) is the backfill.
-- **Name: WDIW** ("What Did I Watch?") — chosen 2026-06-25 (see `NAMES.md`); set in
-  `package.json`, `manifest.config.ts`, popup/options copy, and the icons. NOT renamed: the
-  internal `tldw*` storage keys (a rename needs a data migration) and the working dir
-  (`watchprint/`). The **GitHub repo is `n8watkins/wdiw`** (renamed).
+  per-channel helpers) — the live core, not dead code.
+- **Video-id is one source of truth:** `extractVideoId` in `lib/constants.ts`; the content
+  script and the storage history-matching both use it. Don't reintroduce a second regex.
+- **`recordWatchProgress` is atomic** (single `withWriteLock("watchRecord")`); keep it so.
+- **DOM fragility is the #1 ongoing risk** — `watchtime.ts` selectors break silently if
+  YouTube changes its DOM (no telemetry, by design). The popup "last tracked" line is the
+  user-visible canary.
+- **No historical backfill from live capture** is inherent — keep honest empty states; the
+  Takeout import is the backfill.
+- **Name: WDIW**; GitHub repo `n8watkins/wdiw`; internal `tldw*` keys + working dir unchanged.
 
-## File map
-
-- `src/content/watchtime.ts` — the watch-time observer + inlined channel/meta scraper
-  (the live capture). The one fragile bit (YouTube DOM selectors) — keep in sync with
-  reality if YouTube changes its watch-page DOM.
-- `src/background/index.ts` — `WATCH_PROGRESS` → `recordWatchProgress`; startup sweep.
-- `src/lib/storage.ts` — `recordWatchProgress`, `bumpChannelStat`, `verdictCounterDelta`,
-  lifetime + per-channel stats, history RMW, `withWriteLock`, settings. (Analytics-only.)
-- `src/lib/engagement.ts` — `computeEngagementVerdict` (Engaged/Skimmed/Skipped).
-- `src/lib/stats.ts` / `dashboards.ts` / `history.ts` — the ranking + window + per-channel
-  helpers that **step 4 wires into the UI**.
-- `src/lib/constants.ts` / `src/types/index.ts` — trimmed; types still carry a dead
-  block (step 2.5).
-- `src/popup/` + `src/options/` — **placeholder UI** (step 4 replaces with dashboards).
-- `src/manifest.config.ts` — MV3 manifest (storage perm, youtube host, the watchtime
-  content script).
-- `PLAN.md` — the step-by-step build plan. `IDEAS.md` — product roadmap. `NAMES.md` —
-  naming. `../tldw/docs/ANALYTICS_SPLIT.md` — the split rationale + research + data-access.
+## File map (current)
+- `src/content/watchtime.ts` — live capture: observe `<video>`, accumulate via `countableSeconds`, scrape channel/meta, broadcast `WATCH_PROGRESS`. **The fragile DOM bit.**
+- `src/lib/watchgate.ts` — pure `countableSeconds` accuracy gate (hidden/ad/seek-aware) + tests.
+- `src/background/index.ts` — `WATCH_PROGRESS` → `recordWatchProgress` (clamped); Shorts toolbar-badge updater; startup sweep.
+- `src/lib/storage.ts` — `recordWatchProgress` (atomic), bumps, write-lock, history RMW, `importHistoryEntries`, `importTakeoutEvents`, settings.
+- `src/lib/migrate.ts` — import parsers: `parseHistoryExport` (TL;DW/WDIW), `parseTakeoutHistory` (Takeout), `collapseByVideo`, `foldImportedEntries`.
+- `src/lib/engagement.ts` — `computeEngagementVerdict`. `src/lib/shorts.ts` — doom-scroll sessions, algorithm-feed, `shortsLimitStatus`.
+- `src/lib/stats.ts` / `dashboards.ts` / `history.ts` — pure ranking / windowing / per-channel helpers (wired into the UI). `src/lib/format.ts` — shared duration formatters.
+- `src/lib/constants.ts` / `src/types/index.ts` — trimmed to live fields; caps (`CHANNEL_STATS_CAP`, `HISTORY_HARD_CAP`).
+- `src/options/sections/*` — Stats / Channels / History / Settings. `src/options/components/*` — VirtualList / Icons / ConfirmDialog. `src/popup/App.tsx` — today card + nudge banner + capture-health + pause.
+- `src/manifest.config.ts` — MV3 manifest (storage perm, youtube host, `minimum_chrome_version`).
+- `scripts/gen-icons.mjs` — dependency-free WDIW icon generator. `.github/workflows/ci.yml` — typecheck+test+build on push.
+- `PLAN.md` (build plan, all done) · `IDEAS.md` (roadmap + status) · `NAMES.md` (naming decision) · `README.md` / `PRIVACY.md` / `LICENSE` / `STORE.md` (launch docs) · `../tldw/docs/ANALYTICS_SPLIT.md` (split rationale + data-access).
