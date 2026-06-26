@@ -35,7 +35,16 @@ export default defineManifest({
     service_worker: "src/background/index.ts",
     type: "module",
   },
-  // Content scripts (watch-time observer + channel scraper) land in step 2.
+  // Watch-time observer + channel scraper. Broadcasts WATCH_PROGRESS to the
+  // background recorder. No "scripting" permission needed — declared content
+  // scripts inject themselves on matching pages.
+  content_scripts: [
+    {
+      matches: ["https://www.youtube.com/*"],
+      js: ["src/content/watchtime.ts"],
+      run_at: "document_idle",
+    },
+  ],
   permissions: ["storage"],
   host_permissions: ["https://www.youtube.com/*"],
 });
