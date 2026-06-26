@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import { getHistory, getLifetimeStats } from "../lib/storage";
+import { getLifetimeStats } from "../lib/storage";
 import { localDateKey } from "../lib/constants";
-import type { SearchHistoryEntry } from "../types";
 
 /** seconds → "Xh Ym" / "Ym" / "<1m" / "0m" */
 function fmtSeconds(total: number): string {
@@ -18,35 +17,9 @@ function fmtSeconds(total: number): string {
 
 type Today = {
   seconds: number;
+  shortsSeconds: number;
   videos: number;
-  topChannel: string | null;
-  topChannelSeconds: number;
 };
-
-/** Aggregate "today" from the watch log: entries whose local day == today. */
-function computeToday(history: SearchHistoryEntry[]): Today {
-  const todayKey = localDateKey();
-  const byChannel = new Map<string, number>();
-  let seconds = 0;
-  let videos = 0;
-  for (const e of history) {
-    const t = new Date(e.createdAt);
-    if (Number.isNaN(t.getTime()) || localDateKey(t) !== todayKey) continue;
-    const w = e.watchedSeconds ?? 0;
-    seconds += w;
-    videos += 1;
-    if (e.channel) byChannel.set(e.channel, (byChannel.get(e.channel) ?? 0) + w);
-  }
-  let topChannel: string | null = null;
-  let topChannelSeconds = 0;
-  for (const [name, secs] of byChannel) {
-    if (secs > topChannelSeconds) {
-      topChannel = name;
-      topChannelSeconds = secs;
-    }
-  }
-  return { seconds, videos, topChannel, topChannelSeconds };
-}
 
 const C = {
   bg: "#0d1424",
@@ -64,13 +37,20 @@ export function App() {
 
   useEffect(() => {
     void (async () => {
-      const [history, stats] = await Promise.all([getHistory(), getLifetimeStats()]);
-      setToday(computeToday(history));
+      const stats = await getLifetimeStats();
+      // "Today" is read from the never-pruned per-day maps, attributed to the day
+      // time was actually watched (not a video's first-seen day).
+      const key = localDateKey();
+      setToday({
+        seconds: stats.dailySeconds?.[key] ?? 0,
+        shortsSeconds: stats.dailyShortsSeconds?.[key] ?? 0,
+        videos: stats.activity?.[key] ?? 0,
+      });
       setLifetimeSeconds(stats.secondsWatched);
     })();
   }, []);
 
-  const hasToday = today !== null && today.videos > 0;
+  const hasToday = today !== null && (today.seconds > 0 || today.videos > 0);
 
   return (
     <div
@@ -106,23 +86,19 @@ export function App() {
             <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
               watched today · {today.videos} {today.videos === 1 ? "video" : "videos"}
             </div>
-            {today.topChannel && (
+            {today.shortsSeconds > 0 && (
               <div
                 style={{
                   marginTop: 12,
                   paddingTop: 12,
                   borderTop: `1px solid ${C.border}`,
-                  fontSize: 12,
-                  color: C.muted,
+                  fontSize: 13,
+                  color: C.text,
+                  fontWeight: 600,
                 }}
               >
-                Top channel today
-                <div style={{ color: C.text, fontWeight: 600, fontSize: 13, marginTop: 2 }}>
-                  {today.topChannel}
-                  <span style={{ color: C.faint, fontWeight: 400 }}>
-                    {" "}· {fmtSeconds(today.topChannelSeconds)}
-                  </span>
-                </div>
+                📱 {fmtSeconds(today.shortsSeconds)}
+                <span style={{ color: C.muted, fontWeight: 400 }}> on Shorts today</span>
               </div>
             )}
           </>

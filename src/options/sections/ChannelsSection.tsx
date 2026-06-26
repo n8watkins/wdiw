@@ -187,9 +187,15 @@ function VideoRow({ entry }: { entry: SearchHistoryEntry }) {
 
 // ---- Channel card -----------------------------------------------------------
 
-function ChannelCard({ stats }: { stats: ChannelStats }) {
-  const [expanded, setExpanded] = useState(false);
-
+function ChannelCard({
+  stats,
+  expanded,
+  onToggle,
+}: {
+  stats: ChannelStats;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
   const engagementLabel =
     stats.avgUserRating !== null ? userAvgToLabel(stats.avgUserRating) : null;
 
@@ -197,7 +203,7 @@ function ChannelCard({ stats }: { stats: ChannelStats }) {
     <div className="card" style={{ padding: 0, overflow: "hidden" }}>
       {/* Header row */}
       <button
-        onClick={() => setExpanded((e) => !e)}
+        onClick={onToggle}
         style={{
           width: "100%",
           background: "none",
@@ -322,6 +328,10 @@ export function ChannelsSection() {
   const [totalVideos, setTotalVideos] = useState(0);
   const [sortKey, setSortKey] = useState<SortKey>("time");
   const [search, setSearch] = useState("");
+  // Lifted here (not inside ChannelCard) so an expanded channel survives being
+  // scrolled out of the VirtualList and back — the row unmounts, so card-local
+  // state would be lost. Single key = accordion (one open at a time).
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     const history = await getHistory();
@@ -416,7 +426,13 @@ export function ChannelsSection() {
               getKey={(ch) => ch.channel}
               estimateSize={76}
               style={{ maxHeight: "calc(100vh - 260px)" }}
-              renderItem={(ch) => <ChannelCard stats={ch} />}
+              renderItem={(ch) => (
+                <ChannelCard
+                  stats={ch}
+                  expanded={expandedKey === ch.channel}
+                  onToggle={() => setExpandedKey((k) => (k === ch.channel ? null : ch.channel))}
+                />
+              )}
             />
           )}
         </>

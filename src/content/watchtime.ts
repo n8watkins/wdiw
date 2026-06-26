@@ -38,11 +38,19 @@ const log = (...args: unknown[]) => console.log("[Watchprint WT]", ...args);
 
 const currentVideoId = (): string => {
   try {
-    return new URLSearchParams(location.search).get("v") ?? "";
+    // Long-form watch pages carry the id in ?v=; Shorts live at /shorts/<id>
+    // (no query param), so fall back to the pathname or they never track.
+    const v = new URLSearchParams(location.search).get("v");
+    if (v) return v;
+    const m = /^\/shorts\/([^/?#]+)/.exec(location.pathname);
+    return m?.[1] ?? "";
   } catch {
     return "";
   }
 };
+
+/** True when the page is a Shorts player (/shorts/<id>). */
+const onShortsPage = (): boolean => location.pathname.startsWith("/shorts/");
 
 /** Parse "12:34" / "1:02:03" into seconds. */
 function hmsToSeconds(text: string | null | undefined): number {
@@ -121,6 +129,9 @@ function currentVideoMeta(): WatchProgressMessage["video"] {
 
 let currentVid = "";
 let lastHandledVid = "";
+/** Whether the currently-tracked video is a Short — snapshotted at nav time so a
+ *  forced flush during navigation reports the OLD video's kind, not the next. */
+let currentIsShort = false;
 
 /** Accumulated content-seconds for the current video (never resets mid-video). */
 let totalWatched = 0;
@@ -173,6 +184,7 @@ async function reportProgress(forced = false): Promise<void> {
     deltaSeconds: delta,
     durationSeconds: dur,
     sawSummary: false, // Watchprint never summarizes.
+    isShort: currentIsShort,
     video: videoMeta,
   };
 
@@ -262,6 +274,7 @@ function handleNav(): void {
 
   lastHandledVid = vid;
   currentVid = vid;
+  currentIsShort = onShortsPage();
   totalWatched = 0;
   pendingDelta = 0;
   lastTime = 0;

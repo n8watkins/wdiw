@@ -42,6 +42,13 @@ export type SearchHistoryEntry = {
   watchedSeconds?: number;
   /** Latest known video duration in seconds (written by the watch-time engine). */
   durationSeconds?: number;
+  /**
+   * True if this entry is a YouTube Short (/shorts/…). Drives the Shorts-vs-
+   * long-form split and the doom-scroll metrics. Shorts use a simplified
+   * engagement model — no Engaged/Skimmed/Skipped verdict (they loop, so
+   * "finish rate" is meaningless), so `userRating` stays unset for Shorts.
+   */
+  isShort?: boolean;
   createdAt: string;
 };
 
@@ -68,6 +75,10 @@ export type ChannelStat = {
   engaged: number;
   skimmed: number;
   skipped: number;
+  /** Seconds watched on Shorts from this channel (subset of secondsWatched). */
+  shortsSeconds?: number;
+  /** Distinct Shorts from this channel that accrued watch time. */
+  shortsVideos?: number;
   /** ISO timestamp of the most recent watch — also the eviction key. */
   lastWatched: string;
   /** Latest channel avatar URL scraped from the watch page, if known. */
@@ -99,11 +110,24 @@ export type LifetimeStats = {
   skimmed: number;
   /** Lifetime count of videos rated "Skipped" (skip). */
   skipped: number;
+  /** Total Shorts watch-seconds (subset of secondsWatched). */
+  shortsSeconds?: number;
+  /** Distinct Shorts watched (approximate, like videosWatched). */
+  shortsCount?: number;
   /**
    * Daily summary counts for activity heatmap.
    * Keys are "YYYY-MM-DD"; capped at the most recent 366 entries.
    */
   activity: Record<string, number>;
+  /**
+   * Watch-seconds per local day ("YYYY-MM-DD"), attributed to the day the time
+   * was ACTUALLY watched (bumped by each delta) — not a video's first-seen day.
+   * The accurate source for "time watched today / this week" (history, by
+   * contrast, dates a video once at first sight). Capped to 366 days.
+   */
+  dailySeconds?: Record<string, number>;
+  /** Shorts watch-seconds per local day — backs the Shorts daily quantifier/nudge. */
+  dailyShortsSeconds?: Record<string, number>;
   /**
    * Per-channel watch aggregates, keyed by channel key (channelId ?? name).
    * Capped at the most-recently-watched CHANNEL_STATS_CAP channels (see
@@ -311,6 +335,8 @@ export type WatchProgressMessage = {
   durationSeconds: number;
   /** True if a TL;DW summary panel was shown for this video (affects skip verdict). */
   sawSummary: boolean;
+  /** True when the tracked video is a YouTube Short (/shorts/…). */
+  isShort: boolean;
   video: { url: string; title?: string; channel?: string; avatarUrl?: string };
 };
 

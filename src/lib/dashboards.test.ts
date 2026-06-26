@@ -65,6 +65,9 @@ describe("priorRange", () => {
 
 describe("windowStats", () => {
   const activity = { "2026-06-15": 3, "2026-06-16": 1, "2026-06-08": 5 };
+  // Per-day watch-seconds — the new windowed `watchedSeconds` source. In-window
+  // (week 6/14–6/21): 60 (6/15) + 400 (6/16) = 460; the 6/8 value is prior week.
+  const dailySeconds = { "2026-06-15": 60, "2026-06-16": 400, "2026-06-08": 999 };
   const history = [
     entry({ createdAt: new Date(2026, 5, 15, 9).toISOString(), userRating: "skip", durationSeconds: 600, watchedSeconds: 60, channel: "A" }),
     entry({ createdAt: new Date(2026, 5, 16, 9).toISOString(), userRating: "watch", durationSeconds: 300, watchedSeconds: 300, channel: "A" }),
@@ -73,7 +76,7 @@ describe("windowStats", () => {
   ];
 
   it("filters by window and aggregates the rich metrics from history", () => {
-    const s = windowStats(history, activity, rangeFor("week", NOW));
+    const s = windowStats(history, activity, dailySeconds, rangeFor("week", NOW));
     expect(s.videosWithMeta).toBe(3); // the 6/8 entry is in the prior week
     expect(s.engagement).toEqual({ engaged: 1, skimmed: 1, skipped: 1 });
     // time saved: skip 600-60=540 + skim 400-100=300 = 840 (the watch entry doesn't count)
@@ -81,12 +84,12 @@ describe("windowStats", () => {
     expect(s.hoursPreviewedSeconds).toBe(600 + 300 + 400);
     expect(s.uniqueChannels).toBe(2);
     expect(s.topChannels[0].channel).toBe("A"); // 2 vs 1
-    // watch time: 60 + 300 + 100 in-window (the 6/8 entry is in the prior week)
+    // watchedSeconds now comes from dailySeconds over the window days: 60 + 400 = 460.
     expect(s.watchedSeconds).toBe(460);
   });
 
   it("counts summaries + active days from the activity map", () => {
-    const s = windowStats(history, activity, rangeFor("week", NOW));
+    const s = windowStats(history, activity, dailySeconds, rangeFor("week", NOW));
     expect(s.summaries).toBe(4);   // 6/15 (3) + 6/16 (1)
     expect(s.activeDays).toBe(2);
     expect(s.totalDays).toBe(7);
@@ -95,12 +98,12 @@ describe("windowStats", () => {
   // The timezone edge: an entry at 23:30 on the window's last day counts in it.
   it("counts a 23:30-local entry on the last in-window day", () => {
     const late = entry({ createdAt: new Date(2026, 5, 20, 23, 30).toISOString(), userRating: "watch", durationSeconds: 100, channel: "C" });
-    const s = windowStats([late], {}, rangeFor("week", NOW)); // week is 6/14..6/21
+    const s = windowStats([late], {}, {}, rangeFor("week", NOW)); // week is 6/14..6/21
     expect(s.videosWithMeta).toBe(1);
   });
 
   it("empty window → all zeros, no NaN/throw", () => {
-    const s = windowStats([], {}, rangeFor("year", NOW));
+    const s = windowStats([], {}, {}, rangeFor("year", NOW));
     expect(s.summaries).toBe(0);
     expect(s.timeSavedSeconds).toBe(0);
     expect(s.engagement).toEqual({ engaged: 0, skimmed: 0, skipped: 0 });
@@ -112,7 +115,7 @@ describe("windowStats", () => {
 describe("compareWindows", () => {
   it("returns current + prior window stats", () => {
     const activity = { "2026-06-15": 2, "2026-06-08": 5 };
-    const c = compareWindows([], activity, "week", NOW);
+    const c = compareWindows([], activity, {}, "week", NOW);
     expect(c.current.summaries).toBe(2); // this week
     expect(c.previous.summaries).toBe(5); // last week
   });

@@ -49,7 +49,7 @@ chrome.runtime.onStartup.addListener(() => {
 chrome.runtime.onMessage.addListener(
   (message: RuntimeMessage, _sender, sendResponse) => {
     if (message.type === "WATCH_PROGRESS") {
-      const { videoId, deltaSeconds, durationSeconds, video } = message;
+      const { videoId, deltaSeconds, durationSeconds, isShort, video } = message;
       void (async () => {
         try {
           const settings = await getSettings();
@@ -60,6 +60,7 @@ chrome.runtime.onMessage.addListener(
               durationSeconds,
               // Watchprint has no summary panel — playback is the only signal.
               sawSummary: false,
+              isShort,
               video,
               settings,
             });

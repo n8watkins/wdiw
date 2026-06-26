@@ -16,6 +16,7 @@ import {
   type WindowKind,
   type WindowStats,
 } from "../../lib/dashboards";
+import { algorithmFeedChannels, doomScrollSessions, longestDoomScroll } from "../../lib/shorts";
 
 // ---------------------------------------------------------------------------
 // Formatting helpers
@@ -256,7 +257,10 @@ function WindowedView({
     { value: cur.engagement.skipped, color: "#ef4444", label: "Skipped" },
   ];
 
-  if (cur.videosWithMeta === 0 && cur.watchedSeconds === 0) {
+  // activeDays comes from the never-pruned activity map, so a long window (year)
+  // can have real activity even when in-window history has been pruned away —
+  // don't show "nothing watched" in that case.
+  if (cur.videosWithMeta === 0 && cur.watchedSeconds === 0 && cur.activeDays === 0) {
     return <div className="empty-state" style={{ marginTop: 8 }}>Nothing watched this {label} yet.</div>;
   }
 
@@ -373,7 +377,10 @@ export function StatsSection() {
   // Windowed comparison — derived only, recomputed when data or window changes
   // (no extra storage reads; the storage listener already keeps history/stats fresh).
   const comparison = useMemo(
-    () => (view !== "all" && stats ? compareWindows(history, stats.activity, view) : null),
+    () =>
+      view !== "all" && stats
+        ? compareWindows(history, stats.activity, stats.dailySeconds ?? {}, view)
+        : null,
     [view, stats, history],
   );
 
@@ -436,6 +443,18 @@ export function StatsSection() {
   ];
   const donutTotal = stats.engaged + stats.skimmed + stats.skipped;
   const finishPct = donutTotal > 0 ? Math.round((stats.engaged / donutTotal) * 100) : null;
+
+  // Shorts split. Lifetime totals come from the never-pruned stats (shorts is a
+  // subset of secondsWatched/totalVideos). The doom-scroll session + algorithm-
+  // feed list need per-entry timestamps, so they read the retained history window.
+  const shortsSeconds = stats.shortsSeconds ?? 0;
+  const shortsCount = stats.shortsCount ?? 0;
+  const longSeconds = Math.max(0, stats.secondsWatched - shortsSeconds);
+  const longCount = Math.max(0, totalVideos - shortsCount);
+  const hasShorts = shortsCount > 0 || shortsSeconds > 0;
+  const shortsPct = stats.secondsWatched > 0 ? Math.round((shortsSeconds / stats.secondsWatched) * 100) : 0;
+  const feedChannels = hasShorts ? algorithmFeedChannels(history, 5) : [];
+  const longestSession = hasShorts ? longestDoomScroll(doomScrollSessions(history)) : null;
 
   return (
     <div>
@@ -577,6 +596,56 @@ export function StatsSection() {
           />
         </div>
       </div>
+
+      {/* ── Shorts: split + doom-scroll + algorithm feed ────────── */}
+      {hasShorts && (
+      <div className="stats-grid stats-mid-row">
+
+        <div className="stat-card" style={{ "--ca": "#f43f5e", "--cg": "rgba(244,63,94,0.12)" } as CSSProperties}>
+          <div className="stat-card-label">Shorts vs long-form</div>
+          <div style={{ display: "flex", height: 10, borderRadius: 6, overflow: "hidden", margin: "12px 0 14px" }}>
+            <div style={{ width: `${shortsPct}%`, background: "#f43f5e" }} />
+            <div style={{ width: `${100 - shortsPct}%`, background: "#22c55e" }} />
+          </div>
+          <div className="stat-channel-row">
+            <span className="stat-channel-name"><span style={{ color: "#fb7185" }}>●</span> Shorts</span>
+            <span className="stat-channel-meta">
+              {fmtSeconds(shortsSeconds)} · {fmtCount(shortsCount)} {shortsCount === 1 ? "short" : "shorts"}
+            </span>
+          </div>
+          <div className="stat-channel-row">
+            <span className="stat-channel-name"><span style={{ color: "#4ade80" }}>●</span> Long-form</span>
+            <span className="stat-channel-meta">
+              {fmtSeconds(longSeconds)} · {fmtCount(longCount)} {longCount === 1 ? "video" : "videos"}
+            </span>
+          </div>
+          {longestSession && (
+            <div className="stats-window-note" style={{ marginTop: 12 }}>
+              Longest doom-scroll: <strong>{fmtCount(longestSession.count)}</strong> shorts in a row · {fmtSeconds(longestSession.seconds)}
+            </div>
+          )}
+        </div>
+
+        <div className="stat-card" style={{ "--ca": "#a78bfa", "--cg": "rgba(167,139,250,0.12)" } as CSSProperties}>
+          <div className="stat-card-label">Channels the algorithm feeds you</div>
+          {feedChannels.length === 0 ? (
+            <div className="stat-empty">No Shorts tracked in your recent history yet.</div>
+          ) : (
+            <div>
+              {feedChannels.map((c) => (
+                <div key={c.channel} className="stat-channel-row">
+                  <span className="stat-channel-av" />
+                  <span className="stat-channel-name">{c.channel}</span>
+                  <span className="stat-channel-meta">
+                    {fmtCount(c.shortsCount)} {c.shortsCount === 1 ? "short" : "shorts"} · {fmtSeconds(c.shortsSeconds)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      )}
 
       {/* ── Small tile row ──────────────────────────────────────── */}
       <div className="stats-grid stats-small-row">

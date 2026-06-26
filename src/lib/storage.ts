@@ -119,10 +119,12 @@ export async function recordWatchProgress(args: {
   deltaSeconds: number;
   durationSeconds: number;
   sawSummary: boolean;
+  /** True when the video is a YouTube Short — gets a simplified model (no verdict). */
+  isShort: boolean;
   video: { url: string; title?: string; channel?: string; avatarUrl?: string };
   settings: Settings;
 }): Promise<void> {
-  const { videoId, deltaSeconds, durationSeconds, sawSummary, video, settings } = args;
+  const { videoId, deltaSeconds, durationSeconds, sawSummary, isShort, video, settings } = args;
 
   // The previous rating (before this update) and the resulting entry, captured
   // out of the serialized history mutation so we can bump stats afterward.
@@ -141,11 +143,17 @@ export async function recordWatchProgress(args: {
     const prevWatched = existingEntry?.watchedSeconds ?? 0;
     const newWatched = prevWatched + deltaSeconds;
 
-    const verdict = computeEngagementVerdict(newWatched, durationSeconds, {
-      engagedPct: settings.engagedPct,
-      skimmedPct: settings.skimmedPct,
-      sawSummary,
-    });
+    // Shorts loop and are tiny — "finish rate" is meaningless, so they get a
+    // simplified model: no Engaged/Skimmed/Skipped verdict (userRating stays
+    // unset), keeping the long-form engagement metric clean. We still accumulate
+    // their watch time + counts below.
+    const verdict = isShort
+      ? null
+      : computeEngagementVerdict(newWatched, durationSeconds, {
+          engagedPct: settings.engagedPct,
+          skimmedPct: settings.skimmedPct,
+          sawSummary,
+        });
 
     // If there's no entry and we have nothing meaningful to store, skip the write.
     if (idx === -1 && deltaSeconds <= 0 && verdict === null) return null;
@@ -167,6 +175,7 @@ export async function recordWatchProgress(args: {
         watchedSeconds: newWatched,
         durationSeconds: durationSeconds || current.durationSeconds,
         ...(nextRating !== undefined ? { userRating: nextRating } : {}),
+        ...(isShort ? { isShort: true } : {}),
       };
       history[idx] = updatedEntry;
       return history;
@@ -185,6 +194,7 @@ export async function recordWatchProgress(args: {
       watchedSeconds: newWatched,
       durationSeconds: durationSeconds || undefined,
       ...(verdict !== null && verdict !== undefined ? { userRating: verdict as "watch" | "skim" | "skip" } : {}),
+      ...(isShort ? { isShort: true } : {}),
       createdAt: new Date().toISOString(),
     };
     updatedEntry = stub;
@@ -221,13 +231,28 @@ export async function recordWatchProgress(args: {
     // groups history). Skip the per-channel bump when the channel is unknown.
     const channelName = entry.channel ?? video.channel;
     await bumpLifetimeStats((s) => {
-      if (deltaSeconds > 0) s.secondsWatched += deltaSeconds;
+      const dayKey = localDateKey();
+      // Never-pruned daily maps (guaranteed present by getLifetimeStats; guard
+      // anyway for older stored stats written before these fields existed).
+      s.dailySeconds ??= {};
+      s.dailyShortsSeconds ??= {};
+      if (deltaSeconds > 0) {
+        s.secondsWatched += deltaSeconds;
+        // Attribute watch-seconds to the day they were ACTUALLY watched (this
+        // write), not the video's first-seen day — so "time today / this week"
+        // is correct for videos watched across day boundaries.
+        s.dailySeconds[dayKey] = (s.dailySeconds[dayKey] ?? 0) + deltaSeconds;
+        if (isShort) {
+          s.shortsSeconds = (s.shortsSeconds ?? 0) + deltaSeconds;
+          s.dailyShortsSeconds[dayKey] = (s.dailyShortsSeconds[dayKey] ?? 0) + deltaSeconds;
+        }
+      }
       // The day a video is first observed counts toward the activity heatmap +
       // "active days" — the never-pruned daily signal the dashboards window over
       // (history alone is pruned, so it can't back a 12-week/yearly view).
       if (wasNewEntry) {
-        const dayKey = localDateKey();
         s.activity[dayKey] = (s.activity[dayKey] ?? 0) + 1;
+        if (isShort) s.shortsCount = (s.shortsCount ?? 0) + 1;
       }
       if (verdictDelta) {
         s.engaged = Math.max(0, s.engaged + verdictDelta.engaged);
@@ -242,6 +267,7 @@ export async function recordWatchProgress(args: {
           deltaSeconds: deltaSeconds > 0 ? deltaSeconds : 0,
           videoIsNew: wasNewEntry,
           verdictDelta,
+          isShort,
         });
       }
     });
@@ -262,7 +288,11 @@ export function emptyLifetimeStats(): LifetimeStats {
     engaged: 0,
     skimmed: 0,
     skipped: 0,
+    shortsSeconds: 0,
+    shortsCount: 0,
     activity: {},
+    dailySeconds: {},
+    dailyShortsSeconds: {},
     channels: {},
   };
 }
@@ -291,6 +321,8 @@ export async function getLifetimeStats(): Promise<LifetimeStats> {
     ...emptyLifetimeStats(),
     ...stored,
     activity: stored?.activity ?? {},
+    dailySeconds: stored?.dailySeconds ?? {},
+    dailyShortsSeconds: stored?.dailyShortsSeconds ?? {},
     channels: stored?.channels ?? {},
   };
 }
@@ -311,6 +343,10 @@ export async function bumpLifetimeStats(
     if (!stats.since) stats.since = new Date().toISOString();
     mutate(stats);
     stats.activity = trimActivity(stats.activity);
+    // The per-day seconds maps are keyed by date like activity — bound them the
+    // same way (newest 366 days) so they don't grow without limit.
+    if (stats.dailySeconds) stats.dailySeconds = trimActivity(stats.dailySeconds);
+    if (stats.dailyShortsSeconds) stats.dailyShortsSeconds = trimActivity(stats.dailyShortsSeconds);
     // Bound the per-channel map the same way activity is bounded — evict the
     // least-recently-watched channels so storage stays well under the quota.
     if (stats.channels) stats.channels = trimChannelStats(stats.channels);
@@ -340,10 +376,11 @@ export function bumpChannelStat(
     deltaSeconds: number;
     videoIsNew: boolean;
     verdictDelta?: { engaged: number; skimmed: number; skipped: number };
+    isShort?: boolean;
   },
 ): void {
   if (!s.channels) s.channels = {};
-  const { channelKey, name, avatarUrl, deltaSeconds, videoIsNew, verdictDelta } = args;
+  const { channelKey, name, avatarUrl, deltaSeconds, videoIsNew, verdictDelta, isShort } = args;
   const prev = s.channels[channelKey];
   const next: ChannelStat = prev ?? {
     name,
@@ -363,6 +400,10 @@ export function bumpChannelStat(
     next.engaged = Math.max(0, next.engaged + verdictDelta.engaged);
     next.skimmed = Math.max(0, next.skimmed + verdictDelta.skimmed);
     next.skipped = Math.max(0, next.skipped + verdictDelta.skipped);
+  }
+  if (isShort) {
+    if (deltaSeconds > 0) next.shortsSeconds = (next.shortsSeconds ?? 0) + deltaSeconds;
+    if (videoIsNew) next.shortsVideos = (next.shortsVideos ?? 0) + 1;
   }
   next.lastWatched = new Date().toISOString();
   s.channels[channelKey] = next;

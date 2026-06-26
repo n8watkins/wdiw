@@ -89,6 +89,7 @@ function daySpan(range: DateRange): number {
 export function windowStats(
   history: SearchHistoryEntry[],
   activity: Record<string, number>,
+  dailySeconds: Record<string, number>,
   range: DateRange,
 ): WindowStats {
   const inWindow = history.filter((e) => inRange(e.createdAt, range));
@@ -96,12 +97,10 @@ export function windowStats(
   const engagement: Engagement = { engaged: 0, skimmed: 0, skipped: 0 };
   let timeSavedSeconds = 0;
   let hoursPreviewedSeconds = 0;
-  let watchedSeconds = 0;
   for (const e of inWindow) {
     if (e.userRating === "watch") engagement.engaged++;
     else if (e.userRating === "skim") engagement.skimmed++;
     else if (e.userRating === "skip") engagement.skipped++;
-    watchedSeconds += e.watchedSeconds ?? 0;
     if (e.durationSeconds != null) {
       hoursPreviewedSeconds += e.durationSeconds;
       if (e.userRating === "skim" || e.userRating === "skip") {
@@ -110,14 +109,20 @@ export function windowStats(
     }
   }
 
-  // summaries + active days from the daily-counts map over the window's days.
+  // summaries + active days + watch-seconds from the never-pruned daily maps,
+  // over the window's days. watchedSeconds comes from dailySeconds (attributed to
+  // the day actually watched) — NOT Σ history.watchedSeconds, which would
+  // mis-bucket a video's whole total to its first-seen day and miss pruned rows.
   let summaries = 0;
   let activeDays = 0;
+  let watchedSeconds = 0;
   const cursor = new Date(range.start);
   while (cursor.getTime() < range.end.getTime()) {
-    const c = activity[localDateKey(cursor)] ?? 0;
+    const key = localDateKey(cursor);
+    const c = activity[key] ?? 0;
     summaries += c;
     if (c > 0) activeDays++;
+    watchedSeconds += dailySeconds[key] ?? 0;
     cursor.setDate(cursor.getDate() + 1);
   }
 
@@ -141,13 +146,14 @@ export function windowStats(
 export function compareWindows(
   history: SearchHistoryEntry[],
   activity: Record<string, number>,
+  dailySeconds: Record<string, number>,
   kind: WindowKind,
   now: Date = new Date(),
 ): WindowComparison {
   const range = rangeFor(kind, now);
   return {
-    current: windowStats(history, activity, range),
-    previous: windowStats(history, activity, priorRange(range, kind)),
+    current: windowStats(history, activity, dailySeconds, range),
+    previous: windowStats(history, activity, dailySeconds, priorRange(range, kind)),
   };
 }
 
