@@ -26,10 +26,13 @@ finished vs. abandoned, live and 100% local.
    breaks Shorts out, and every Shorts extension only *hides* them. Pair with an
    **optional limit/nudge** ("you've done 40 min of Shorts today") — demand skews
    toward "help me stop," not just "show me a number."
-3. **Accuracy as a headline feature.** The #1 universal complaint about every
-   incumbent. Be focus/visibility/playback-state aware: don't count background or
-   AFK tabs, don't double-count, make YouTube **Music** excludable. "The tracker
-   that's actually right." — **★ NOT YET BUILT — the top remaining wedge item.**
+3. **Accuracy as a headline feature.** ✅ (core). Visibility/playback-state aware:
+   doesn't count hidden/background tabs (PiP still counts), paused/ended ticks, or
+   ad playback; rejects seeks; doesn't double-count; YouTube **Music** excluded by
+   construction (youtube.com-only content script). Pure-tested in `lib/watchgate.ts`.
+   *Remaining nuance:* true AFK (playing while the user is away, on a visible tab)
+   is inherently undetectable without hurting the normal "watch without touching the
+   mouse" case — left alone deliberately.
 4. **Time-of-day / peak-hour heatmap.** When you watch (and binge), GitHub-style. ✅
 
 ## Phase 2 — the moat
@@ -68,7 +71,8 @@ time/channel view (give that away free to win distribution). Keep core free for 
 
 ## Suggested build order
 ✅ Phase 0 dashboards → ✅ Shorts split + quantifier (1.2) → ✅ Takeout import (2.5) →
-✅ shipping polish (icons / first-run onboarding / store + privacy docs).
-**Next:** ★ **accuracy hardening** (1.3 — the trust win, the top remaining wedge item) →
-**trends & source-attribution** (2.6–2.7) → category/topic breakdown + broader goals/recap
-(Phase 3). ⚠️ **Live capture must be verified in a real browser before store submission.**
+✅ shipping polish (icons / first-run onboarding / store + privacy docs) →
+✅ accuracy hardening (1.3 — background/ad/seek aware).
+**Next:** **trends & source-attribution** (2.6–2.7) → category/topic breakdown + broader
+goals/recap (Phase 3) → step 2.5 dead-code trim. ⚠️ **Live capture must be verified in a
+real browser before store submission** (esp. now that capture gates on hidden/ad state).

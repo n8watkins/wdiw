@@ -43,10 +43,12 @@ feasibility in [`../tldw/docs/ANALYTICS_SPLIT.md`](../tldw/docs/ANALYTICS_SPLIT.
 | `8f866c5` | **Step 7-D polish (completes Step 7)**: "When you watch" time-of-day heatmap (`dashboards.hourlyHeatmap`) + Shorts/Long/All kind filter on Channels + History. |
 | `54bf935` | **Step 5a — TL;DW import bridge**: `lib/migrate.ts` (parse/collapse/fold) + `storage.importHistoryEntries` + Settings → Import card. Imports a TL;DW history export (or WDIW backup) and rebuilds the stats. |
 | `4214df8` | **Step 5b — Google Takeout importer (completes Step 5)**: `parseTakeoutHistory` (cleans the Takeout array) + `importTakeoutEvents` (watermarked, idempotent) + auto-detect in Settings → Import + "Most-watched channels" by-count card. Takeout = counts/activity only (no durations/engagement; Shorts indistinguishable). |
+| `a51827b` | **Shipping polish**: real WDIW icons (`scripts/gen-icons.mjs`, dependency-free) replacing tl-dw placeholders; first-run onboarding banner (`firstRunNoticeSeen`); README/PRIVACY/LICENSE/STORE docs. |
+| `2be979c` | **Accuracy hardening (IDEAS §1.3)**: pure `lib/watchgate.ts` `countableSeconds` — don't count hidden/background tabs (PiP counts), paused/ended, or ad playback; seek-reject + clamp now tested. Wired into `watchtime.ts`. |
 
-**Verified:** `npm run typecheck` clean, **137/137** tests, `npm run build` OK. **Steps 7
-and 5 are complete** (live capture + dashboards + nudge + TL;DW import + Google Takeout
-import). The extension loads, accrues data (incl. Shorts), renders the dashboards
+**Verified:** `npm run typecheck` clean, **147/147** tests, `npm run build` OK. **Steps 7
+and 5 are complete + shipping polish + accuracy hardening** (live capture + dashboards +
+nudge + TL;DW/Takeout import + real icons/onboarding/docs + background/ad-aware capture). The extension loads, accrues data (incl. Shorts), renders the dashboards
 (per-channel time/engagement, Shorts split, peak-hours heatmap, kind filters), and shows
 the doom-scroll nudge. A loadable build is copied to `C:\Users\natha\Downloads\watchprint-dist`
 for unpacked install (`build` is plain `vite build` — no auto Windows copy; re-copy
@@ -100,10 +102,15 @@ counts/activity only — no durations/engagement, Shorts indistinguishable). **D
 verified:** no API returns watch history with or without Google auth (removed 2016);
 Takeout (manual self-export) is the only ToS-clean backfill.
 
-### ★ Next — polish & roadmap
-Build plan (steps 1–7 + migration) is done. Candidates: step 2.5 type-trim; never-pruned
-per-hour data (so the time-of-day heatmap isn't limited to retained history); accuracy
-hardening + the `IDEAS.md` roadmap.
+### ★ Next — verify live + roadmap
+Build plan (1–7 + migration), shipping polish, and **accuracy hardening** (✅ background/
+ad/seek-aware, `lib/watchgate.ts`) are all done. **#1 still-open: live browser verification**
+— capture has never been run for real (and now gates on hidden/ad state, so it must be
+checked live before store submission). Then roadmap candidates: trends & source-attribution
+(IDEAS 2.6–2.7); never-pruned per-hour data (so the time-of-day heatmap isn't limited to
+retained history); step 2.5 dead-code trim (see below); category breakdown + broader goals.
+A real Google Takeout export is on its way from the user — exercise `parseTakeoutHistory` /
+`importTakeoutEvents` against it when it lands.
 
 ### 4. Step 2.5 — finish the trim (cleanup, low priority)
 `types/index.ts` still carries a dead summarizer/message/sponsor type block (left
