@@ -8,7 +8,7 @@ Project + build infra cloned; analytics **data layer copied whole + tests passin
 minimal popup/options reading lifetime stats; MV3 manifest (storage + youtube host,
 no content scripts yet). Faithful copy on purpose — *make it work, then make it clean.*
 
-## Step 2 — Trim the data layer (make it clean)
+## ✅ Step 2 — Trim the data layer (done — commit caa547f)
 The copy dragged in summarizer-only code to stay green. Now remove it:
 - `storage.ts`: drop profiles / Gemini / pending-prompts / open-searches /
   delivery-status / summary-cache / tags functions. Keep: `withWriteLock`,
@@ -25,7 +25,7 @@ The copy dragged in summarizer-only code to stay green. Now remove it:
   no collision) or rename to `watchprint*` (cleaner, but then the migration importer
   must map old → new).
 
-## Step 3 — Content scripts (capture)
+## ✅ Step 3 — Content scripts (capture) (done — commit e0d5fd5)
 Port from TL;DW: `watchtime.ts` (watch-time observer + auto engagement verdict) and a
 **minimal** `youtube.ts` that does only channel-info + video-meta scraping (NOT the
 summary panel). Background records `WATCH_PROGRESS` via `recordWatchProgress`. This is
