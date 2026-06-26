@@ -142,6 +142,12 @@ export type LifetimeStats = {
    */
   takeoutThrough?: string;
   /**
+   * ISO time of the most recent LIVE watch-progress record (set by
+   * recordWatchProgress, NOT by imports). Powers the popup's "last tracked"
+   * capture-health signal so a silently-broken content script is noticeable.
+   */
+  lastRecordedAt?: string;
+  /**
    * Per-channel watch aggregates, keyed by channel key (channelId ?? name).
    * Capped at the most-recently-watched CHANNEL_STATS_CAP channels (see
    * trimChannelStats) so it stays well under the storage quota. Optional so

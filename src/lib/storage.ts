@@ -233,6 +233,9 @@ export async function recordWatchProgress(args: {
     const channelName = entry.channel ?? video.channel;
     await bumpLifetimeStats((s) => {
       const dayKey = localDateKey();
+      // Capture-health signal: the last time LIVE watch progress was recorded
+      // (imports don't touch this), surfaced by the popup so silent breakage shows.
+      s.lastRecordedAt = new Date().toISOString();
       // Never-pruned daily maps (guaranteed present by getLifetimeStats; guard
       // anyway for older stored stats written before these fields existed).
       s.dailySeconds ??= {};

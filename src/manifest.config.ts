@@ -9,6 +9,8 @@ export default defineManifest({
   name: "WDIW — What Did I Watch?",
   short_name: "WDIW",
   version: pkg.version,
+  // MV3 service worker + chrome.action badge + navigator.locks + Picture-in-Picture.
+  minimum_chrome_version: "116",
   description:
     "WDIW (What Did I Watch?) — analyze your YouTube usage: per-channel watch time, engagement, and a Shorts / doom-scroll breakdown, computed locally. No account, no servers.",
   icons: {

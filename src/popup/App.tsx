@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getLifetimeStats, getSettings } from "../lib/storage";
+import { getLifetimeStats, getSettings, setSettings } from "../lib/storage";
 import { localDateKey } from "../lib/constants";
 import { shortsLimitStatus, type ShortsLimitStatus } from "../lib/shorts";
 
@@ -15,6 +15,21 @@ function fmtSeconds(total: number): string {
   if (rem === 0) return `${h}h`;
   return `${h}h ${rem}m`;
 }
+
+/** Compact "time since" for the capture-health line. */
+function timeAgo(iso: string): string {
+  const ms = Date.now() - Date.parse(iso);
+  if (Number.isNaN(ms)) return "—";
+  const m = Math.floor(ms / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+/** Flag capture as possibly-stale after this long with no live record. */
+const STALE_MS = 3 * 24 * 60 * 60 * 1000;
 
 type Today = {
   seconds: number;
@@ -36,6 +51,8 @@ export function App() {
   const [today, setToday] = useState<Today | null>(null);
   const [lifetimeSeconds, setLifetimeSeconds] = useState(0);
   const [limit, setLimit] = useState<ShortsLimitStatus | null>(null);
+  const [tracking, setTracking] = useState<boolean | null>(null);
+  const [lastRecorded, setLastRecorded] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     void (async () => {
@@ -51,10 +68,20 @@ export function App() {
       });
       setLifetimeSeconds(stats.secondsWatched);
       setLimit(shortsLimitStatus(shortsSeconds, settings.shortsLimitMinutes));
+      setTracking(settings.trackEngagement);
+      setLastRecorded(stats.lastRecordedAt);
     })();
   }, []);
 
+  async function toggleTracking() {
+    const next = !(tracking ?? true);
+    setTracking(next);
+    const s = await getSettings();
+    await setSettings({ ...s, trackEngagement: next });
+  }
+
   const hasToday = today !== null && (today.seconds > 0 || today.videos > 0);
+  const stale = lastRecorded ? Date.now() - Date.parse(lastRecorded) > STALE_MS : false;
 
   return (
     <div
@@ -169,7 +196,43 @@ export function App() {
         </div>
       )}
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14 }}>
+      {/* Capture-health + pause control */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+          marginTop: 14,
+          paddingTop: 12,
+          borderTop: `1px solid ${C.border}`,
+        }}
+      >
+        <span style={{ fontSize: 11, color: tracking === false || stale ? "#fbbf24" : C.faint }}>
+          {tracking === false
+            ? "⏸ Tracking paused"
+            : lastRecorded
+              ? `${stale ? "⚠ " : ""}Last tracked ${timeAgo(lastRecorded)}`
+              : "Nothing tracked yet"}
+        </span>
+        <button
+          onClick={() => void toggleTracking()}
+          style={{
+            background: "none",
+            border: `1px solid ${C.border}`,
+            color: C.muted,
+            borderRadius: 6,
+            padding: "4px 10px",
+            fontSize: 11,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          {tracking === false ? "Resume" : "Pause"}
+        </button>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 12 }}>
         <span style={{ fontSize: 11, color: C.faint }}>
           {fmtSeconds(lifetimeSeconds)} all-time
         </span>
