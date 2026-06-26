@@ -36,13 +36,16 @@ feasibility in [`../tldw/docs/ANALYTICS_SPLIT.md`](../tldw/docs/ANALYTICS_SPLIT.
 | `caa547f` | **Step 2 — trim**: data layer cut to analytics-only (deleted `profiles.ts`; dropped Gemini/cache/tags/pending from storage/constants/types). |
 | `e0d5fd5` | **Step 3 — capture**: the live loop. `content/watchtime.ts` observes playback + scrapes channel/meta + broadcasts `WATCH_PROGRESS`; `background/index.ts` records it via `recordWatchProgress`. |
 | `8110e55` | Docs: `NAMES.md`, `IDEAS.md`. |
+| `c06bc99` | **Step 4 — dashboards UI**: watch-centric Stats / Channels / History / Settings + popup "today" card; options shell + `VirtualList`/`Icons`/`ConfirmDialog`/`options.css` ported; data-layer `watchedSeconds` + `activity` heatmap additions. |
 
-**Verified:** `npm run typecheck` clean, **78/78** tests, `npm run build` OK
-(`watchtime.ts` content chunk bundles). The extension **loads and accrues data**.
+**Verified:** `npm run typecheck` clean, **79/79** tests, `npm run build` OK. The
+extension **loads, accrues data, and renders the dashboards**. A loadable build is also
+copied to `C:\Users\natha\Downloads\watchprint-dist` for unpacked install (Watchprint's
+`build` is plain `vite build` — no auto Windows copy; re-copy `dist/` after rebuilds).
 
-**NOT done yet:** the **dashboards UI** — `popup/App.tsx` and `options/OptionsApp.tsx`
-are placeholders that only print a lifetime-stats line. The captured data has no real
-UI yet. The **name** is provisional.
+**NOT done yet:** **Shorts don't track** (the `?v=`-only `currentVideoId` bug — see Step 7
+in `PLAN.md`); the **Shorts split / doom-scroll quantifier** (Step 7, the next priority);
+the step 2.5 type-trim cleanup; migration/Takeout (step 5). The **name** is provisional.
 
 ## How the capture works (the data flow)
 
@@ -68,37 +71,33 @@ content/watchtime.ts  ──WATCH_PROGRESS──▶  background/index.ts  ──
 
 ## Next steps (ordered)
 
-### 1. ★ Step 4 — Dashboards UI (the main task)
-Make the captured data visible. Port + adapt from TL;DW's options sections:
-- **⚠️ Critical source gotcha:** TL;DW's *current* `StatsSection`/`ChannelsSection`
-  are **summary-centric** (wrong for Watchprint). The **watch-centric** versions you
-  want are in TL;DW's history **before commit `dd34755`**. Recover them with e.g.
-  `git -C ../tldw show dd34755^:src/options/sections/StatsSection.tsx` (and
-  `ChannelsSection.tsx`, `HistorySection.tsx`) — those have the time-watched +
-  engagement (Engaged/Skimmed/Skipped) + per-channel-by-time dashboards, the donut,
-  the heatmap, the week/month/year windowed view. Copy + adapt those.
-- Also copy the **options shell** (`../tldw/src/options/OptionsApp.tsx` + sidebar nav),
-  **components** (`VirtualList.tsx`, `Icons.tsx`, `ConfirmDialog.tsx`), and
-  **`options.css`** for theming.
-- Wire to the existing helpers above. Scope the nav to Watchprint's surfaces (Stats,
-  Channels, History, Settings) — drop TL;DW-only sections (DirectApi, Profiles, Tags,
-  Setup, Support/About can be minimal).
-- **Popup**: a mini "today" card (time watched today, top channel).
-- **Acceptance:** load `dist`, watch a few YouTube videos, then open Options and see
-  per-channel **time + engagement** accrue, plus a usage overview.
+### 1. ✅ Step 4 — Dashboards UI (done — commit `c06bc99`)
+Watch-centric Stats / Channels / History / Settings + a popup "today" card; the options
+shell + `VirtualList`/`Icons`/`ConfirmDialog`/`options.css` ported from TL;DW
+(pre-`dd34755`). Full breakdown in `PLAN.md` Step 4. Verified typecheck / 79 tests /
+build. Loadable build copied to `C:\Users\natha\Downloads\watchprint-dist`.
 
-### 2. Step 2.5 — finish the trim (cleanup, low priority)
+### 2. ★ Step 7 — Shorts split + doom-scroll quantifier (NEXT — the wedge)
+The competitive white space + strongest expressed demand. **⚠️ Shorts don't track today**
+— `watchtime.ts` `currentVideoId()` reads only `?v=`, but Shorts are `/shorts/<id>`, so
+they report an empty id. Step A fixes capture; the full plan + locked decisions (count
+loops into *duration* not count; simplified Shorts engagement; "channels the algorithm
+feeds you"; time-of-day heatmap; in-scope doom-scroll nudge) live in `PLAN.md` Step 7.
+**Data-access verified:** no API returns watch history with or without Google auth
+(removed 2016) — build auth-free; backfill = Takeout only.
+
+### 3. Step 2.5 — finish the trim (cleanup, low priority)
 `types/index.ts` still carries a dead summarizer/message/sponsor type block (left
 intentionally to avoid a cascade during step 2). Remove what's now truly unused.
 Optionally rename the `tldw*` storage keys (then add a migration in step 5).
 
-### 3. Step 5 — Migration + history
+### 4. Step 5 — Migration + history
 chrome.storage is per-extension, so Watchprint starts **empty** and can't read TL;DW's
 `tldwStats`. Build a one-time **export-from-TL;DW → import** bridge (JSON), and an
 optional **Google Takeout** `watch-history.json` importer for backfill (the only
 ToS-clean path to past data; note: Takeout has **no watch durations**).
 
-### 4. Then the product roadmap → [`IDEAS.md`](IDEAS.md)
+### 5. Then the product roadmap → [`IDEAS.md`](IDEAS.md)
 Shorts-vs-long split + a **Shorts quantifier**, **accuracy hardening** (the #1
 incumbent complaint), source attribution, trends, optional goals/nudges.
 

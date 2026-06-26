@@ -31,11 +31,25 @@ Port from TL;DW: `watchtime.ts` (watch-time observer + auto engagement verdict) 
 summary panel). Background records `WATCH_PROGRESS` via `recordWatchProgress`. This is
 the live data loop.
 
-## Step 4 — Dashboards (display)
-Port + adapt `StatsSection`, `ChannelsSection`, `HistorySection` + the options shell,
-`VirtualList`, `Icons`, `ConfirmDialog`, and `options.css`. Add the Watchprint angle:
-per-channel **engagement** (finish vs. abandon), **Shorts-vs-long-form** split,
-time-of-day heatmap.
+## ✅ Step 4 — Dashboards (display) (done — commit c06bc99)
+Ported + adapted the watch-centric options shell (recovered from TL;DW *before* its
+summary-centric rescope at `dd34755`) and wired every surface to the analytics helpers:
+- **Stats** — week/month/year/all toggle; all-time time-watched / videos / top channel,
+  engagement donut, 12-week activity heatmap + streak, top-by-time + most-engaged
+  channel lists, finish-rate tiles; windowed view leads on time watched this period.
+- **Channels** — per-channel time + engagement + last-watched, expandable per-video
+  list, sort by time/videos/recent.
+- **History** — per-video watch log (verdict, watched-of-duration, date) + limit/expiry
+  controls + export/clear.
+- **Settings** — engagement thresholds, history limit/expiry, clear-data + reset.
+- **Popup** — mini "today" card (time + top channel today).
+
+Copied `VirtualList`, `Icons` (trimmed), `ConfirmDialog`, `options.css`. Data-layer
+additions (tests stay green, 79 total): `ChannelStats.watchedSeconds`,
+`WindowStats.watchedSeconds`, an `activity[today]` bump on first sight of a video (the
+never-pruned heatmap / active-days signal), `HISTORY_EXPIRY_OPTIONS`. Deferred from the
+original Watchprint angle: the **Shorts-vs-long-form split** + **time-of-day heatmap** →
+now Step 7.
 
 ## Step 5 — Migration + history
 - One-time **export-from-TL;DW → import** bridge (chrome.storage is per-extension, so
@@ -48,6 +62,50 @@ Lead on the competitive white space (see ANALYTICS_SPLIT.md): per-channel,
 engagement-aware, **live + local**, **desktop**, with a Shorts quantifier — optionally
 paired with a limit/nudge (demand skews "help me stop"). Avoid "yet another yearly
 wrapped" (YouTube shipped native Recap, Dec 2025).
+
+## Step 7 — Shorts split + doom-scroll quantifier (NEXT — the wedge)
+The competitive white space (ANALYTICS_SPLIT.md §3) and the strongest expressed demand
+("help me **stop**"). Prioritized **ahead of Step 5**.
+
+**⚠️ Shorts don't track at all today.** `content/watchtime.ts` `currentVideoId()` reads
+the id only from `?v=`; Shorts are `/shorts/<id>` (no `?v=`), so they report an empty id
+and never accrue. Step A fixes this — the wedge feature and a real bug fix are the same
+work.
+
+Decisions (locked with the user 2026-06-25):
+- **Loops count toward duration, not count.** A loop is just more time on the *same*
+  Short. Two stats: `shortsCount` (1 per distinct Short) and `shortsSeconds` (sums
+  across loops — a 20s Short looped 3× = 60s). Cap each *single* play at the Short's
+  duration, then sum plays.
+- **Simplified Shorts engagement** — no Engaged/Skimmed/Skipped donut for Shorts; use a
+  loops-per-Short / avg-time-on-Short proxy. Keeps the long-form taste metric clean.
+- **"Channels the algorithm keeps feeding you"** — Shorts ranked by # served + time,
+  flagging channels you rack up Shorts on *without subscribing* (pure algorithm push).
+  The novel, on-thesis stat.
+- **Time-of-day (peak-hours) heatmap** — "when do you doom-scroll"; the existing heatmap
+  is GitHub-style by day.
+- **Doom-scroll sessions + nudge are in scope** (not someday) — it's a desktop tool, so
+  catching a doom-scroll run is the point. Default session boundary: a new session after
+  a **>3 min gap**.
+
+Sub-steps (each independently shippable):
+- **A. Make Shorts capture work** (`content/watchtime.ts`): match `/shorts/<id>` in
+  `currentVideoId()`, tag reports `isShort`, cap each play at duration but accumulate
+  loops into `shortsSeconds`, verify the Shorts-player duration/channel scrape.
+- **B. Data model** (`types` + `lib/storage`): `isShort?` on `WatchProgressMessage` +
+  `SearchHistoryEntry`; `shortsCount`/`shortsSeconds` (global + per-channel) on
+  `LifetimeStats`, optional/migration-safe.
+- **C. Sessions + algorithm-feed list** — pure, unit-tested helpers in `lib/stats.ts` /
+  `lib/dashboards.ts`.
+- **D. Dashboards** — Shorts-vs-long split card, Shorts quantifier (time / count /
+  longest session), "channels the algorithm feeds you" list, time-of-day heatmap; a
+  kind filter on Channels / History.
+- **E. Nudge / limit** — optional soft daily Shorts limit + toolbar badge / popup banner.
+
+**Data-access note (verified):** no API returns watch history, **with or without Google
+auth** (removed 2016-09-12). Build auth-free. Backfill = Google Takeout only (Step 5; no
+durations). An API key gets *public* metadata only (free within ~10k units/day) —
+optional enrichment, off by default, since it leaks the watch list off-device.
 
 ## Shared-code note
 Copied from TL;DW, not shared via a package (deliberate — two independent repos). The
