@@ -1,4 +1,4 @@
-# Handoff — Watchprint
+# Handoff — WDIW (What Did I Watch?)
 
 Zero-context handoff. Read this + [`PLAN.md`](PLAN.md) + [`IDEAS.md`](IDEAS.md) +
 [`NAMES.md`](NAMES.md) first; they answer most questions — don't re-ask the user
@@ -10,13 +10,13 @@ what these already decide. _Last updated: 2026-06-25._
 analyzes **your own YouTube usage** — per-channel **watch time** and **engagement**
 (which channels you finish vs. abandon). It's the **post-watch** companion to
 **TL;DW** (a YouTube summarizer at `../tldw`): TL;DW answers *"should I watch /
-summarize this?"*, Watchprint answers *"what/how much have I been watching?"*. They
+summarize this?"*, WDIW answers *"what/how much have I been watching?"*. They
 were one extension and were **split** (rationale + competitive research + data-access
 feasibility in [`../tldw/docs/ANALYTICS_SPLIT.md`](../tldw/docs/ANALYTICS_SPLIT.md)).
 
 - **Stack:** TypeScript + Vite + `@crxjs/vite-plugin`; React for popup/options;
   vanilla TS content script; Vitest.
-- **Repo:** `github.com/n8watkins/watchprint` (**private**), branch `master`.
+- **Repo:** `github.com/n8watkins/wdiw` (**private**), branch `master`. Working dir is still `watchprint/`.
 - **Separate repo — NO monorepo.** Shared code is **copied** from `../tldw` by
   design (the user chose two independent extensions over DRY; duplication accepted).
   When you need a helper/component from TL;DW, **copy + adapt it**, don't import across.
@@ -116,7 +116,7 @@ incumbent complaint), source attribution, trends, optional goals/nudges.
 
 ## Conventions & gotchas
 
-- **Two independent repos, copy not import.** Adapt TL;DW code into Watchprint files.
+- **Two independent repos, copy not import.** Adapt TL;DW code into WDIW files.
 - **`npm run build` = plain `vite build`** — no version bump, no Windows copy (those
   were TL;DW-isms). Output is `dist/`.
 - **Commit** after each logical change with the trailer
@@ -125,12 +125,12 @@ incumbent complaint), source attribution, trends, optional goals/nudges.
 - **The data layer here is ACTIVE and wired** (engagement engine, `recordWatchProgress`,
   per-channel helpers) — the opposite of TL;DW, where those same modules are now dead
   code post-decoupling.
-- **No historical backfill** is inherent — surface honest empty states ("tracks from
-  install forward") and lean on the planned Takeout import.
+- **No historical backfill** from live capture is inherent — surface honest empty states
+  ("tracks from install forward"); the Takeout import (Settings → Import) is the backfill.
 - **Name: WDIW** ("What Did I Watch?") — chosen 2026-06-25 (see `NAMES.md`); set in
-  `package.json`, `manifest.config.ts`, and popup/options copy. NOT renamed: the internal
-  `tldw*` storage keys (a rename needs a data migration — step 5) and the GitHub
-  repo/dir, both still `watchprint`.
+  `package.json`, `manifest.config.ts`, popup/options copy, and the icons. NOT renamed: the
+  internal `tldw*` storage keys (a rename needs a data migration) and the working dir
+  (`watchprint/`). The **GitHub repo is `n8watkins/wdiw`** (renamed).
 
 ## File map
 

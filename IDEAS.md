@@ -12,17 +12,16 @@ Everyone today answers "how much time on YouTube?" We answer **"where did my
 attention actually go, and was it worth it?"** — per channel, long-form vs. Shorts,
 finished vs. abandoned, live and 100% local.
 
-## Phase 0 — the MVP (in progress: steps 1–4)
-- Watch-time capture (done: step 3) → per-channel **time + engagement** (engaged /
-  skimmed / skipped from how much you actually watch).
-- Dashboards: Stats overview, Channels (time + engagement), History — ported from
-  TL;DW.
-- Local-only, no account, no servers (table stakes — but do it cleanly).
+## Phase 0 — the MVP ✅ (shipped)
+- Watch-time capture → per-channel **time + engagement** (engaged / skimmed / skipped
+  from how much you actually watch). ✅
+- Dashboards: Stats overview, Channels (time + engagement), History, Settings. ✅
+- Local-only, no account, no servers. ✅
 
 ## Phase 1 — the differentiators (the actual wedge)
 1. **Engagement / "taste" analytics.** Which channels you *finish* vs. *bail on*;
-   your finish-rate trend; "attention quality," not just minutes. **Nobody does this.**
-2. **Shorts vs. long-form split + a Shorts quantifier.** Count, time, and
+   your finish-rate trend; "attention quality," not just minutes. **Nobody does this.** ✅
+2. **Shorts vs. long-form split + a Shorts quantifier.** ✅ (split + doom-scroll + daily-limit nudge). Count, time, and
    *doom-scroll sessions* on Shorts specifically — YouTube's own "Time Watched" never
    breaks Shorts out, and every Shorts extension only *hides* them. Pair with an
    **optional limit/nudge** ("you've done 40 min of Shorts today") — demand skews
@@ -30,14 +29,14 @@ finished vs. abandoned, live and 100% local.
 3. **Accuracy as a headline feature.** The #1 universal complaint about every
    incumbent. Be focus/visibility/playback-state aware: don't count background or
    AFK tabs, don't double-count, make YouTube **Music** excludable. "The tracker
-   that's actually right."
-4. **Time-of-day / peak-hour heatmap.** When you watch (and binge), GitHub-style.
+   that's actually right." — **★ NOT YET BUILT — the top remaining wedge item.**
+4. **Time-of-day / peak-hour heatmap.** When you watch (and binge), GitHub-style. ✅
 
 ## Phase 2 — the moat
-5. **Google Takeout import.** Seed *years* of historical watch history (the only
-   ToS-clean path to backfill — live observation only sees data from install-date
-   forward). No extension does this well; it instantly makes the dashboards rich on
-   day one. (Caveat: Takeout has no watch *durations* — enrich what we can, be honest.)
+5. **Google Takeout import.** ✅ **Done** (Settings → Import). Seeds *years* of historical
+   watch history (the only ToS-clean backfill — live observation only sees data from
+   install-date forward). (Caveat, as shipped: Takeout has no watch *durations* or
+   engagement, so it backfills video / channel / activity counts, not watch-time.)
 6. **"Where I found this" source attribution.** Home feed vs. search vs. channel vs.
    Shorts vs. subscriptions — how each surface eats your time. Only one tiny
    extension touches this; analytically juicy.
@@ -68,6 +67,8 @@ source attribution, trends, optional privacy-preserving sync — not the basic
 time/channel view (give that away free to win distribution). Keep core free for now.
 
 ## Suggested build order
-Phase 0 (finish the dashboards) → **Shorts split + quantifier** (Phase 1.2, the
-clearest unmet need) → **accuracy hardening** (1.3, the trust win) → **Takeout import**
-(2.5, the day-one-rich moat) → trends/source-attribution → wellbeing/export.
+✅ Phase 0 dashboards → ✅ Shorts split + quantifier (1.2) → ✅ Takeout import (2.5) →
+✅ shipping polish (icons / first-run onboarding / store + privacy docs).
+**Next:** ★ **accuracy hardening** (1.3 — the trust win, the top remaining wedge item) →
+**trends & source-attribution** (2.6–2.7) → category/topic breakdown + broader goals/recap
+(Phase 3). ⚠️ **Live capture must be verified in a real browser before store submission.**

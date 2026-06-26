@@ -1,4 +1,4 @@
-# Watchprint — build plan
+# WDIW — build plan
 
 Incremental extraction of the analytics layer from TL;DW into this standalone
 extension. Each step builds + tests green before the next. TL;DW is **untouched**.
