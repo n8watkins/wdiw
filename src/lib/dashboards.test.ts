@@ -81,6 +81,8 @@ describe("windowStats", () => {
     expect(s.hoursPreviewedSeconds).toBe(600 + 300 + 400);
     expect(s.uniqueChannels).toBe(2);
     expect(s.topChannels[0].channel).toBe("A"); // 2 vs 1
+    // watch time: 60 + 300 + 100 in-window (the 6/8 entry is in the prior week)
+    expect(s.watchedSeconds).toBe(460);
   });
 
   it("counts summaries + active days from the activity map", () => {

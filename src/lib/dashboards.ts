@@ -26,6 +26,8 @@ export type WindowStats = {
   summaries: number;
   /** History entries in the window (the denominator for the rich metrics). */
   videosWithMeta: number;
+  /** Σ watchedSeconds of in-window entries — the watch-time the period view leads on. */
+  watchedSeconds: number;
   /** Σ max(0, duration − watched) for skim/skip entries, seconds. */
   timeSavedSeconds: number;
   /** Σ durationSeconds of videos summarized in the window. */
@@ -94,10 +96,12 @@ export function windowStats(
   const engagement: Engagement = { engaged: 0, skimmed: 0, skipped: 0 };
   let timeSavedSeconds = 0;
   let hoursPreviewedSeconds = 0;
+  let watchedSeconds = 0;
   for (const e of inWindow) {
     if (e.userRating === "watch") engagement.engaged++;
     else if (e.userRating === "skim") engagement.skimmed++;
     else if (e.userRating === "skip") engagement.skipped++;
+    watchedSeconds += e.watchedSeconds ?? 0;
     if (e.durationSeconds != null) {
       hoursPreviewedSeconds += e.durationSeconds;
       if (e.userRating === "skim" || e.userRating === "skip") {
@@ -123,6 +127,7 @@ export function windowStats(
     range,
     summaries,
     videosWithMeta: inWindow.length,
+    watchedSeconds,
     timeSavedSeconds,
     hoursPreviewedSeconds,
     engagement,

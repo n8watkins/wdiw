@@ -1,0 +1,337 @@
+import { useEffect, useState } from "react";
+import type { HistoryExpiryDays, HistoryLimit, SearchHistoryEntry, Settings } from "../../types";
+import { getHistory, getSettings, mutateHistory, setHistory, setSettings } from "../../lib/storage";
+import { DEFAULT_SETTINGS, HISTORY_EXPIRY_OPTIONS, STORAGE_KEYS, USER_RATING_LABELS } from "../../lib/constants";
+import { expireOldEntries, trimToLimit } from "../../lib/history";
+import { ConfirmDialog } from "../components/ConfirmDialog";
+import { Icon } from "../components/Icons";
+import { VirtualList } from "../components/VirtualList";
+
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const mins = Math.floor(diffMs / 60000);
+
+  const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  const isToday = d.toDateString() === now.toDateString();
+  const isYesterday =
+    d.toDateString() === new Date(now.getTime() - 86400000).toDateString();
+
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  if (isToday) return `Today at ${time}`;
+  if (isYesterday) return `Yesterday at ${time}`;
+  return d.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+}
+
+function displayUrl(url: string): string {
+  try { return new URL(url).hostname.replace("www.", "") + new URL(url).pathname.slice(0, 30); }
+  catch { return url.slice(0, 40); }
+}
+
+/** Format a watch-time duration (seconds) as e.g. "1h 4m", "12m 30s", "45s". */
+function fmtSeconds(total: number): string {
+  const secs = Math.max(0, Math.round(total));
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+/** Pill background for the engagement verdict. */
+const VERDICT_COLORS: Record<"watch" | "skim" | "skip", string> = {
+  watch: "#16a34a",
+  skim: "#d97706",
+  skip: "#dc2626",
+};
+
+export function HistorySection() {
+  const [entries, setEntries] = useState<SearchHistoryEntry[]>([]);
+  const [settings, setSettingsState] = useState<Settings | null>(null);
+  const [query, setQuery] = useState("");
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  useEffect(() => {
+    void (async () => {
+      const [stored, loaded] = await Promise.all([getHistory(), getSettings()]);
+      const fresh = expireOldEntries(stored, loaded);
+      setEntries(fresh);
+      setSettingsState(loaded);
+      // Persist the prune so storage actually shrinks and the count is honest.
+      if (fresh.length !== stored.length) await setHistory(fresh);
+    })();
+  }, []);
+
+  // Keep in sync with the background while this tab is open: it adds new history
+  // entries and updates watch-progress/ratings as the user watches. Without this
+  // the page held a stale snapshot and any write below would clobber those
+  // changes (real data loss). Mirror settings changes too.
+  useEffect(() => {
+    const onChange = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+      if (area !== "local") return;
+      if (changes[STORAGE_KEYS.history]) {
+        setEntries((changes[STORAGE_KEYS.history].newValue as SearchHistoryEntry[]) ?? []);
+      }
+      if (changes[STORAGE_KEYS.settings]?.newValue) {
+        setSettingsState({ ...DEFAULT_SETTINGS, ...(changes[STORAGE_KEYS.settings].newValue as Settings) });
+      }
+    };
+    chrome.storage.onChanged.addListener(onChange);
+    return () => chrome.storage.onChanged.removeListener(onChange);
+  }, []);
+
+  async function updateSettings(patch: Partial<Settings>) {
+    if (!settings) return;
+    const next = { ...settings, ...patch };
+    setSettingsState(next);
+    await setSettings(next);
+    // Re-apply expiry + limit inside the shared history lock (mutateHistory), so
+    // a concurrent worker write (WATCH_PROGRESS from any open tab) can't slip
+    // between our read and write and get clobbered. The onChanged listener
+    // refreshes the visible list.
+    await mutateHistory((stored) => {
+      const pruned = trimToLimit(expireOldEntries(stored, next), next.historyLimit);
+      return pruned.length !== stored.length ? pruned : null;
+    });
+  }
+
+  async function deleteEntry(id: string) {
+    // Recompute from stored history under the lock so a concurrent background
+    // write isn't lost.
+    await mutateHistory((stored) => stored.filter((e) => e.id !== id));
+    setDeleteId(null);
+  }
+
+  async function clearAll() {
+    await mutateHistory(() => []);
+    setConfirmClear(false);
+  }
+
+  function exportHistory() {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      source: "Watchprint",
+      entries,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `watchprint-history-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  const filtered = query.trim()
+    ? entries.filter(
+        (e) =>
+          e.videoTitle?.toLowerCase().includes(query.toLowerCase()) ||
+          e.videoUrl.toLowerCase().includes(query.toLowerCase()) ||
+          e.channel?.toLowerCase().includes(query.toLowerCase()),
+      )
+    : entries;
+
+  return (
+    <div className="history-page">
+      <div className="section-header">
+        <h1 className="section-title">History</h1>
+        <p className="section-desc">
+          Every video you've watched, newest first. Stored locally — nothing leaves your browser.
+        </p>
+      </div>
+
+      <div className="history-toolbar">
+        <input
+          type="text"
+          placeholder="Search by video title, URL, or channel…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        {entries.length > 0 && (
+          <div className="toolbar-actions">
+            <button className="btn btn-ghost btn-icon-text" onClick={exportHistory}>
+              <Icon name="download" />
+              Export
+            </button>
+            <button className="btn btn-danger btn-icon-text" onClick={() => setConfirmClear(true)}>
+              <Icon name="trash" />
+              Clear All
+            </button>
+          </div>
+        )}
+      </div>
+
+      {settings && (
+        <div className="history-options">
+          <div className="history-options-row">
+            <div className="history-opt">
+              <span className="history-opt-label">Keep at most</span>
+              <select
+                className="setting-select"
+                value={String(settings.historyLimit)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  void updateSettings({ historyLimit: (v === "unlimited" ? "unlimited" : Number(v)) as HistoryLimit });
+                }}
+              >
+                <option value="50">50 entries</option>
+                <option value="100">100 entries</option>
+                <option value="250">250 entries</option>
+                <option value="unlimited">Unlimited</option>
+              </select>
+            </div>
+
+            <div className="history-opt">
+              <span className="history-opt-label">Auto-delete old</span>
+              <label className="toggle">
+                <input
+                  type="checkbox"
+                  checked={settings.autoExpireHistory}
+                  onChange={(e) => void updateSettings({ autoExpireHistory: e.target.checked })}
+                />
+                <span className="toggle-track" />
+              </label>
+            </div>
+
+            <div className="history-opt">
+              <span className="history-opt-label">After</span>
+              <select
+                className="setting-select"
+                value={String(settings.historyExpiryDays)}
+                disabled={!settings.autoExpireHistory}
+                onChange={(e) =>
+                  void updateSettings({ historyExpiryDays: Number(e.target.value) as HistoryExpiryDays })
+                }
+              >
+                {HISTORY_EXPIRY_OPTIONS.map((d) => (
+                  <option key={d} value={d}>
+                    {d} days
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {entries.length > 0 && (
+        <p className="history-stats">
+          {filtered.length} of {entries.length} {entries.length === 1 ? "entry" : "entries"}
+        </p>
+      )}
+
+      {filtered.length === 0 ? (
+        <div className="history-scroll">
+          <div className="empty-state">
+            {entries.length === 0
+              ? "No videos watched yet — they'll appear here as you watch."
+              : "No results for that search."}
+          </div>
+        </div>
+      ) : (
+        <VirtualList
+          className="history-scroll"
+          items={filtered}
+          getKey={(entry) => entry.id}
+          estimateSize={64}
+          renderItem={(entry) => {
+            const isOpen = openId === entry.id;
+            return (
+              <div className="history-card">
+                <div className="history-row" onClick={() => setOpenId(isOpen ? null : entry.id)}>
+                  <div className="history-main">
+                    <div className="history-video">
+                      {entry.videoTitle || displayUrl(entry.videoUrl)}
+                    </div>
+                    <div className="history-meta">
+                      <span>{entry.channel ?? "Unknown channel"}</span>
+                      <span>·</span>
+                      <span>{formatDate(entry.createdAt)}</span>
+                    </div>
+                  </div>
+                  <div className="history-actions" onClick={(e) => e.stopPropagation()}>
+                    {entry.userRating && (
+                      <span
+                        style={{
+                          padding: "2px 8px",
+                          borderRadius: 999,
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: "#fff",
+                          background: VERDICT_COLORS[entry.userRating],
+                        }}
+                      >
+                        {USER_RATING_LABELS[entry.userRating]}
+                      </span>
+                    )}
+                    <button
+                      className="icon-action"
+                      title="Open video"
+                      aria-label="Open video"
+                      onClick={() => void chrome.tabs.create({ url: entry.videoUrl })}
+                    >
+                      <Icon name="external" />
+                    </button>
+                    <button
+                      className="icon-action danger"
+                      title="Delete"
+                      aria-label="Delete history entry"
+                      onClick={() => setDeleteId(entry.id)}
+                    >
+                      <Icon name="trash" />
+                    </button>
+                  </div>
+                  <span className={`chevron ${isOpen ? "open" : ""}`} style={{ marginLeft: 8 }}>
+                    <Icon name="chevron" />
+                  </span>
+                </div>
+
+                <div className={`history-detail-wrapper${isOpen ? " open" : ""}`}>
+                  <div className="history-detail-inner">
+                    <div className="history-detail">
+                      <p className="field-label" style={{ marginBottom: 6 }}>Watch time</p>
+                      {entry.durationSeconds ? (
+                        <span>
+                          Watched {fmtSeconds(entry.watchedSeconds ?? 0)} of {fmtSeconds(entry.durationSeconds)} (
+                          {Math.round(((entry.watchedSeconds ?? 0) / entry.durationSeconds) * 100)}%)
+                        </span>
+                      ) : (
+                        <span>Watched {fmtSeconds(entry.watchedSeconds ?? 0)}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          }}
+        />
+      )}
+
+      {confirmClear && (
+        <ConfirmDialog
+          title="Clear all history?"
+          body={`This will permanently delete ${entries.length} watched-video ${entries.length === 1 ? "entry" : "entries"}, including watch time and engagement verdicts.`}
+          confirmLabel="Clear History"
+          onCancel={() => setConfirmClear(false)}
+          onConfirm={() => void clearAll()}
+        />
+      )}
+      {deleteId && (
+        <ConfirmDialog
+          title="Delete this entry?"
+          body="This removes the video from your Watchprint history."
+          confirmLabel="Delete Entry"
+          onCancel={() => setDeleteId(null)}
+          onConfirm={() => void deleteEntry(deleteId)}
+        />
+      )}
+    </div>
+  );
+}

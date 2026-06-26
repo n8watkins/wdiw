@@ -126,6 +126,15 @@ describe("computeChannelStats — user rating", () => {
     expect(stats[0].avgUserRating).toBeNull();
     expect(stats[0].userBreakdown).toEqual({ engaged: 0, skimmed: 0, skipped: 0 });
   });
+
+  it("sums watchedSeconds across a channel's retained videos (missing → 0)", () => {
+    const stats = computeChannelStats([
+      { ...channelEntry("a", "Chan", "watch"), watchedSeconds: 120 },
+      { ...channelEntry("b", "Chan", "skim"), watchedSeconds: 30 },
+      channelEntry("c", "Chan"), // no watchedSeconds
+    ]);
+    expect(stats[0].watchedSeconds).toBe(150);
+  });
 });
 
 describe("scoreToVerdict", () => {

@@ -18,6 +18,9 @@ export const TLDW_STATS_KEY = "tldwStats";
  */
 export const CHANNEL_STATS_CAP = 500;
 
+/** Age thresholds (days) offered by the history auto-expiry control. */
+export const HISTORY_EXPIRY_OPTIONS = [7, 30, 90, 365] as const;
+
 export const DEFAULT_SETTINGS: Settings = {
   autoSubmit: true,
   saveHistoryOnSearch: true,

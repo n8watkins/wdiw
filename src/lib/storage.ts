@@ -8,6 +8,7 @@ import { computeEngagementVerdict, VERDICT_RANK } from "./engagement";
 import {
   DEFAULT_SETTINGS,
   extractVideoId,
+  localDateKey,
   STORAGE_KEYS,
   TLDW_STATS_KEY,
 } from "./constants";
@@ -221,6 +222,13 @@ export async function recordWatchProgress(args: {
     const channelName = entry.channel ?? video.channel;
     await bumpLifetimeStats((s) => {
       if (deltaSeconds > 0) s.secondsWatched += deltaSeconds;
+      // The day a video is first observed counts toward the activity heatmap +
+      // "active days" — the never-pruned daily signal the dashboards window over
+      // (history alone is pruned, so it can't back a 12-week/yearly view).
+      if (wasNewEntry) {
+        const dayKey = localDateKey();
+        s.activity[dayKey] = (s.activity[dayKey] ?? 0) + 1;
+      }
       if (verdictDelta) {
         s.engaged = Math.max(0, s.engaged + verdictDelta.engaged);
         s.skimmed = Math.max(0, s.skimmed + verdictDelta.skimmed);

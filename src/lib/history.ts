@@ -80,6 +80,14 @@ export type ChannelStats = {
   avgUserRating: number | null;
   /** Tally of personal verdicts for this channel. */
   userBreakdown: { engaged: number; skimmed: number; skipped: number };
+  /**
+   * Σ watchedSeconds across this channel's retained videos. Self-consistent with
+   * the `videos` list shown when a channel card is expanded — unlike the persisted
+   * LifetimeStats.channels[].secondsWatched (never-pruned, lifetime), this only
+   * covers the retained history window, which is the right scope for the
+   * browseable Channels view.
+   */
+  watchedSeconds: number;
   lastWatched: string;
   videos: SearchHistoryEntry[];
 };
@@ -116,6 +124,7 @@ export function computeChannelStats(history: SearchHistoryEntry[]): ChannelStats
           ? userRatings.reduce((a, b) => a + USER_RATING_SCALE[b], 0) / userRatings.length
           : null,
         userBreakdown,
+        watchedSeconds: videos.reduce((acc, v) => acc + (v.watchedSeconds ?? 0), 0),
         lastWatched: videos[0]?.createdAt ?? "",
         videos,
       };
