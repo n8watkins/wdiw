@@ -22,33 +22,14 @@ export const CHANNEL_STATS_CAP = 500;
 export const HISTORY_EXPIRY_OPTIONS = [7, 30, 90, 365] as const;
 
 export const DEFAULT_SETTINGS: Settings = {
-  autoSubmit: true,
-  saveHistoryOnSearch: true,
   historyLimit: 100,
   autoExpireHistory: true,
   historyExpiryDays: 30,
-  focusGeminiTab: true,
-  autoPauseOnSummarize: false,
-  worthWatchingGate: false,
-  worthWatchingMinutes: 30,
-  gateBypassTerms: "",
-  destinationId: "gemini",
-  temporaryChats: true,
-  autoTldwMinutes: 0,
-  geminiApiKey: "",
-  geminiApiKeyName: "",
-  useDirectApi: false,
-  showAiRecommendation: true,
-  trackAiAverage: true,
+  firstRunNoticeSeen: false,
   trackEngagement: true,
-  showEngagementStatus: true,
   engagedPct: 60,
   skimmedPct: 15,
   shortsLimitMinutes: 0,
-  trackMyAverage: true,
-  skipSponsors: true,
-  keepFullCallLog: false,
-  firstRunNoticeSeen: false,
 };
 
 /**

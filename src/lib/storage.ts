@@ -35,12 +35,11 @@ export async function setHistory(history: SearchHistoryEntry[]): Promise<void> {
 
 /**
  * Accumulated watched-seconds for a video from history (0 if none). A video can
- * have MULTIPLE history rows — a summary entry (no watchedSeconds) prepended by
- * addHistoryEntry can shadow the watch-progress stub that holds the total — so we
- * take the max over ALL matching entries rather than trusting first-match. Pure
- * helper exported for tests. Used by the watch-time engine to RESTORE progress on
- * reload (F3) so a refresh doesn't reset the engagement measurement that feeds the
- * average.
+ * have MULTIPLE history rows (e.g. one without watchedSeconds shadowing the stub
+ * that holds the total), so we take the max over ALL matching entries rather than
+ * trusting first-match. Pure helper exported for tests. Used by the watch-time
+ * engine to RESTORE progress on reload so a refresh doesn't reset the engagement
+ * measurement.
  */
 export function watchedSecondsFromHistory(
   history: SearchHistoryEntry[],
@@ -92,9 +91,9 @@ export function withWriteLock<T>(key: string, fn: () => Promise<T>): Promise<T> 
 
 /**
  * Serialized read-modify-write of the history array. All history mutations
- * (recordWatchProgress, addHistoryEntry) route through here so concurrent
- * writers can't clobber each other. The callback receives the current stored
- * history and returns the next array, or null to skip the write entirely.
+ * (recordWatchProgress, the importers, the options History view) route through
+ * here so concurrent writers can't clobber each other. The callback receives the
+ * current stored history and returns the next array, or null to skip the write.
  */
 export async function mutateHistory(
   fn: (history: SearchHistoryEntry[]) => SearchHistoryEntry[] | null,
@@ -284,11 +283,6 @@ export async function recordWatchProgress(args: {
 export function emptyLifetimeStats(): LifetimeStats {
   return {
     since: "",
-    summaries: 0,
-    cacheHits: 0,
-    durationSummarizedSeconds: 0,
-    sponsorSkips: 0,
-    sponsorSecondsSaved: 0,
     secondsWatched: 0,
     videosWatched: 0,
     engaged: 0,

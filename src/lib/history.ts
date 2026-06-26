@@ -1,10 +1,4 @@
-import type {
-  PromptProfile,
-  SearchHistoryEntry,
-  Settings,
-  VideoContext,
-} from "../types";
-import { mutateHistory } from "./storage";
+import type { SearchHistoryEntry, Settings } from "../types";
 import { USER_RATING_SCALE } from "./constants";
 
 /** Keep only the newest `limit` entries ("unlimited" keeps all). Newest first. */
@@ -34,42 +28,6 @@ export function expireOldEntries(
   });
 }
 
-/** Prepend a new entry and trim to the configured limit. Newest first. */
-export async function addHistoryEntry(args: {
-  video: VideoContext;
-  profile: PromptProfile;
-  prompt: string;
-  settings: Settings;
-  destinationId?: string;
-  aiRating?: number;
-  channelAvatarUrl?: string;
-  userRating?: "watch" | "skim" | "skip";
-}): Promise<void> {
-  const entry: SearchHistoryEntry = {
-    id: crypto.randomUUID(),
-    videoUrl: args.video.url,
-    videoTitle: args.video.title,
-    channel: args.video.channel,
-    channelAvatarUrl: args.channelAvatarUrl,
-    profileId: args.profile.id,
-    profileName: args.profile.name,
-    destinationId: args.destinationId,
-    prompt: args.prompt,
-    // De-duplicated: the raw response is NOT stored here. The single home for
-    // full prompt + response is the Direct API call log (gated by the
-    // keepFullCallLog setting); history keeps the prompt (needed for "ask
-    // again") plus compact metadata only.
-    aiRating: args.aiRating,
-    userRating: args.userRating,
-    createdAt: new Date().toISOString(),
-  };
-  // Serialized RMW (shares the history lock with recordWatchProgress) so a
-  // concurrent watch-progress write can't clobber this new entry, or vice-versa.
-  await mutateHistory((existing) => {
-    const fresh = expireOldEntries([entry, ...existing], args.settings);
-    return trimToLimit(fresh, args.settings.historyLimit);
-  });
-}
 
 export type ChannelStats = {
   channel: string;
