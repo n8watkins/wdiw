@@ -135,6 +135,13 @@ export type LifetimeStats = {
   /** Shorts watch-seconds per local day — backs the Shorts daily quantifier/nudge. */
   dailyShortsSeconds?: Record<string, number>;
   /**
+   * ISO time of the latest Google Takeout watch event already imported. A
+   * re-import only folds events newer than this — so re-importing the same file
+   * is a no-op, and re-exporting Takeout months later folds just the new events
+   * (incremental). Set by `importTakeoutEvents`.
+   */
+  takeoutThrough?: string;
+  /**
    * Per-channel watch aggregates, keyed by channel key (channelId ?? name).
    * Capped at the most-recently-watched CHANNEL_STATS_CAP channels (see
    * trimChannelStats) so it stays well under the storage quota. Optional so

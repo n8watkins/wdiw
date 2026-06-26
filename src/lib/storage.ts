@@ -496,3 +496,63 @@ export async function importHistoryEntries(
 
   return result;
 }
+
+export type TakeoutImportResult = {
+  /** Watch events in the file (after cleaning). */
+  total: number;
+  /** Events newly folded in (newer than the last import watermark). */
+  imported: number;
+  /** Events skipped as already imported (≤ the watermark). */
+  skipped: number;
+};
+
+/**
+ * Import a parsed Google Takeout watch history. Each record is a distinct watch
+ * EVENT (rewatches are separate rows — the point for the activity / time-of-day
+ * patterns), so unlike `importHistoryEntries` it does NOT collapse by video.
+ * Idempotent + incremental via the `takeoutThrough` watermark: only events newer
+ * than the last import are folded, so re-importing the same file is a no-op and a
+ * fresh export months later folds just the new events. Takeout carries no
+ * durations or engagement, so this populates video counts, the activity heatmap,
+ * per-channel counts, and "tracking since" — not watch-time or finish-rate.
+ */
+export async function importTakeoutEvents(
+  events: SearchHistoryEntry[],
+): Promise<TakeoutImportResult> {
+  const stats = await getLifetimeStats();
+  const through = stats.takeoutThrough ?? "";
+  // createdAt is normalized to UTC ISO by the parser, so a string compare is chronological.
+  const fresh = through ? events.filter((e) => e.createdAt > through) : events.slice();
+  const result: TakeoutImportResult = {
+    total: events.length,
+    imported: fresh.length,
+    skipped: events.length - fresh.length,
+  };
+  if (fresh.length === 0) return result;
+
+  const latest = fresh.reduce((m, e) => (e.createdAt > m ? e.createdAt : m), through);
+
+  // Fold every event into the never-pruned aggregates (no per-video collapse).
+  await bumpLifetimeStats((s) => {
+    foldImportedEntries(s, fresh);
+    if (!s.takeoutThrough || latest > s.takeoutThrough) s.takeoutThrough = latest;
+  });
+
+  // Seed the capped history log with the most-recent events so the History +
+  // Channels pages (and the time-of-day heatmap, which read history) reflect
+  // recent activity. The full history is retained in the never-pruned stats above.
+  const settings = await getSettings();
+  const cap = settings.historyLimit === "unlimited" ? fresh.length : settings.historyLimit;
+  const recent = [...fresh]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, cap)
+    .map((e) => (e.id ? e : { ...e, id: crypto.randomUUID() }));
+  await mutateHistory((cur) => {
+    const merged = [...recent, ...cur].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+    return settings.historyLimit === "unlimited" ? merged : merged.slice(0, settings.historyLimit);
+  });
+
+  return result;
+}

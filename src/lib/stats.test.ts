@@ -4,6 +4,7 @@ import {
   engagedRatio,
   mostEngagedChannels,
   topChannelsByTime,
+  topChannelsByVideos,
   trimChannelStats,
 } from "./stats";
 import type { ChannelStat, SearchHistoryEntry } from "../types";
@@ -224,6 +225,39 @@ describe("topChannelsByTime", () => {
       y: ch({ name: "Y", lastWatched: "2025-02-01T00:00:00Z", secondsWatched: 50 }),
     };
     expect(topChannelsByTime(tie).map((r) => r.key)).toEqual(["y", "x"]);
+  });
+});
+
+describe("topChannelsByVideos", () => {
+  it("ranks by videosWatched descending and drops zero-count channels", () => {
+    const map = {
+      a: ch({ name: "A", lastWatched: "2025-01-01T00:00:00Z", videosWatched: 4 }),
+      b: ch({ name: "B", lastWatched: "2025-01-02T00:00:00Z", videosWatched: 12 }),
+      c: ch({ name: "C", lastWatched: "2025-01-03T00:00:00Z", videosWatched: 0 }),
+    };
+    const ranked = topChannelsByVideos(map, 5);
+    expect(ranked.map((r) => r.key)).toEqual(["b", "a"]);
+    expect(ranked[0]!.name).toBe("B");
+  });
+
+  it("breaks ties by most-recently-watched", () => {
+    const tie = {
+      x: ch({ name: "X", lastWatched: "2025-01-01T00:00:00Z", videosWatched: 5 }),
+      y: ch({ name: "Y", lastWatched: "2025-02-01T00:00:00Z", videosWatched: 5 }),
+    };
+    expect(topChannelsByVideos(tie).map((r) => r.key)).toEqual(["y", "x"]);
+  });
+
+  it("respects the limit", () => {
+    const map = {
+      a: ch({ name: "A", lastWatched: "2025-01-01T00:00:00Z", videosWatched: 4 }),
+      b: ch({ name: "B", lastWatched: "2025-01-02T00:00:00Z", videosWatched: 12 }),
+    };
+    expect(topChannelsByVideos(map, 1).map((r) => r.key)).toEqual(["b"]);
+  });
+
+  it("returns [] for an undefined map", () => {
+    expect(topChannelsByVideos(undefined)).toEqual([]);
   });
 });
 

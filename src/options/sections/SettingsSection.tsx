@@ -6,8 +6,8 @@ import {
   STORAGE_KEYS,
   TLDW_STATS_KEY,
 } from "../../lib/constants";
-import { getSettings, importHistoryEntries, setSettings } from "../../lib/storage";
-import { parseHistoryExport } from "../../lib/migrate";
+import { getSettings, importHistoryEntries, importTakeoutEvents, setSettings } from "../../lib/storage";
+import { looksLikeTakeout, parseHistoryExport, parseTakeoutHistory } from "../../lib/migrate";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { Icon } from "../components/Icons";
 
@@ -62,7 +62,30 @@ export function SettingsSection() {
   async function onImportFile(file: File) {
     setImportMsg({ kind: "busy", text: "Importing…" });
     try {
-      const entries = parseHistoryExport(JSON.parse(await file.text()));
+      const json = JSON.parse(await file.text());
+
+      // Google Takeout watch-history.json — detected by shape (titleUrl/time).
+      if (looksLikeTakeout(json)) {
+        const events = parseTakeoutHistory(json);
+        if (events.length === 0) {
+          setImportMsg({ kind: "err", text: "No watched videos found in that Takeout file." });
+          return;
+        }
+        const r = await importTakeoutEvents(events);
+        if (r.imported === 0) {
+          setImportMsg({ kind: "ok", text: "Already up to date — no new watches in that file." });
+          return;
+        }
+        const skipped = r.skipped > 0 ? `, skipped ${r.skipped.toLocaleString()} already imported` : "";
+        setImportMsg({
+          kind: "ok",
+          text: `Imported ${r.imported.toLocaleString()} watched video${r.imported === 1 ? "" : "s"} from Google Takeout${skipped}. Takeout has no durations, so these add to your video / channel / activity stats — not watch-time.`,
+        });
+        return;
+      }
+
+      // TL;DW / WDIW history export.
+      const entries = parseHistoryExport(json);
       if (entries.length === 0) {
         setImportMsg({ kind: "err", text: "No watch entries found in that file." });
         return;
@@ -270,11 +293,25 @@ export function SettingsSection() {
       <div className="settings-group">
         <div className="settings-group-title"><Icon name="upload" /> Import / migrate</div>
         <div className="card">
-          <div className="card-title">Import from TL;DW (or a WDIW backup)</div>
+          <div className="card-title">Import your history</div>
           <div className="card-desc" style={{ marginBottom: 16 }}>
-            Coming from TL;DW? In TL;DW open <strong>Options → History → Export</strong>, then load that
-            JSON here — WDIW rebuilds your per-channel watch time + engagement from it. Also restores a
-            WDIW export. Importing the same file twice is safe (videos you already have are skipped).
+            Pick a JSON file — WDIW detects the type automatically:
+            <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
+              <li>
+                <strong>Google Takeout</strong> (your full YouTube history) — at{" "}
+                <a href="https://takeout.google.com" target="_blank" rel="noreferrer">takeout.google.com</a>{" "}
+                choose <strong>YouTube and YouTube Music → history</strong>, set the format to{" "}
+                <strong>JSON</strong>, download &amp; unzip, then load <code>watch-history.json</code>.
+                Backfills video / channel / activity stats (Takeout has no durations, so no watch-time
+                or engagement).
+              </li>
+              <li>
+                <strong>TL;DW</strong> or a <strong>WDIW backup</strong> — open{" "}
+                <strong>Options → History → Export</strong> and load that JSON. Rebuilds watch-time +
+                engagement too.
+              </li>
+            </ul>
+            <div style={{ marginTop: 8 }}>Re-importing the same file is safe.</div>
           </div>
           <input
             ref={fileRef}

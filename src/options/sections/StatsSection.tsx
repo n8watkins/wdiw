@@ -6,6 +6,7 @@ import {
   engagedRatio,
   mostEngagedChannels,
   topChannelsByTime,
+  topChannelsByVideos,
   type RankedChannel,
 } from "../../lib/stats";
 import { localDateKey, STORAGE_KEYS, TLDW_STATS_KEY } from "../../lib/constants";
@@ -446,6 +447,7 @@ export function StatsSection() {
   const channelStats = computeChannelStats(history);
   const timeRanked = topChannelsByTime(stats.channels, 5);
   const engagedRanked = mostEngagedChannels(stats.channels, 5);
+  const videoRanked = topChannelsByVideos(stats.channels, 5);
   // Lifetime "Top channel" = most time spent (engagement-meaningful), from the
   // persisted map.
   const topChannel = timeRanked[0];
@@ -625,8 +627,17 @@ export function StatsSection() {
         )}
       </div>
 
-      {/* ── Per-channel engagement: time spent + most engaged ───── */}
-      <div className="stats-grid stats-mid-row">
+      {/* ── Per-channel: most-watched + time spent + most engaged ─ */}
+      <div className="stats-grid stats-hero-row">
+
+        <div className="stat-card" style={{ "--ca": "#06b6d4", "--cg": "rgba(6,182,212,0.12)" } as CSSProperties}>
+          <div className="stat-card-label">Most-watched channels</div>
+          <RankedChannelList
+            channels={videoRanked}
+            emptyText="No channel data yet."
+            meta={(c) => `${fmtCount(c.videosWatched)} ${c.videosWatched === 1 ? "video" : "videos"}`}
+          />
+        </div>
 
         <div className="stat-card" style={{ "--ca": "#14b8a6", "--cg": "rgba(20,184,166,0.12)" } as CSSProperties}>
           <div className="stat-card-label">Top channels by time spent</div>

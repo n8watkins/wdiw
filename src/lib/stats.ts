@@ -74,6 +74,27 @@ export function topChannelsByTime(
 }
 
 /**
+ * Top channels by video COUNT (descending `videosWatched`) — the by-count
+ * companion to topChannelsByTime. This is the ranking that surfaces
+ * Takeout-imported channels: a Takeout import carries video counts but no
+ * watch-time, so those channels are invisible to topChannelsByTime. Channels
+ * with no videos are dropped; ties break by most-recently watched.
+ */
+export function topChannelsByVideos(
+  channels: Record<string, ChannelStat> | undefined,
+  limit = 5,
+): RankedChannel[] {
+  return toList(channels)
+    .filter((c) => c.videosWatched > 0)
+    .sort(
+      (a, b) =>
+        b.videosWatched - a.videosWatched ||
+        b.lastWatched.localeCompare(a.lastWatched),
+    )
+    .slice(0, limit);
+}
+
+/**
  * Most-engaged channels: ranked by engaged COUNT (the user ask is "which
  * channels the user is MOST ENGAGED with"). A high raw engaged count means the
  * user actually watches that channel's videos through; ratio alone would float

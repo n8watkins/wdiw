@@ -51,6 +51,113 @@ export function videoKey(e: SearchHistoryEntry): string {
   return extractVideoId(e.videoUrl) ?? e.videoUrl;
 }
 
+/** A single activity record in a Google Takeout `watch-history.json` array. */
+type TakeoutRecord = {
+  header?: string;
+  title?: string;
+  titleUrl?: string;
+  subtitles?: { name?: string; url?: string }[];
+  time?: string;
+  details?: { name?: string }[];
+};
+
+/**
+ * Cheap shape sniff: does this parsed JSON look like a Google Takeout
+ * `watch-history.json` (a JSON array of activity records keyed on
+ * `titleUrl`/`time`) rather than a TL;DW/WDIW export (entries keyed on
+ * `videoUrl`/`createdAt`)? Samples the first 50 records so we don't walk a
+ * huge file just to pick a parser.
+ */
+export function looksLikeTakeout(json: unknown): boolean {
+  return (
+    Array.isArray(json) &&
+    json.slice(0, 50).some(
+      (r) =>
+        r &&
+        typeof r === "object" &&
+        typeof (r as { titleUrl?: unknown }).titleUrl === "string" &&
+        typeof (r as { time?: unknown }).time === "string",
+    )
+  );
+}
+
+/**
+ * Parse a Google Takeout `watch-history.json` (a JSON ARRAY of activity
+ * records) into WDIW `SearchHistoryEntry[]`, cleaning out the non-video noise
+ * the file mixes in (ads, removed/private videos, YouTube Music, community
+ * posts, web visits, searches).
+ *
+ * IMPORTANT — Takeout's limits vs. WDIW's live capture:
+ * - No watch durations and no watched-seconds: Takeout only records THAT a
+ *   video was watched, never for how long. Imported entries carry no
+ *   `watchedSeconds` / `durationSeconds`, so the importer counts them toward
+ *   videos-watched and per-channel counts but contributes zero watch time.
+ * - No engagement signal: there's no Engaged/Skimmed/Skipped verdict to derive
+ *   (that needs watch-time), so `userRating` is left unset.
+ * - Shorts are NOT distinguishable: Takeout normalizes Shorts to canonical
+ *   `watch?v=` URLs, so we can't tell a Short from a long-form video. Imported
+ *   entries are therefore treated as kind-unknown / long-form (`isShort` unset).
+ *
+ * Each entry is built WITHOUT id/watch-time/verdict/kind: `id: ""` is
+ * intentional (falsy, so the importer replaces it with a real id). Pure (no
+ * chrome.*) so it's unit-testable; the storage orchestration lives elsewhere.
+ */
+export function parseTakeoutHistory(json: unknown): SearchHistoryEntry[] {
+  if (!Array.isArray(json)) {
+    throw new Error(
+      "Unrecognized file — expected a Google Takeout watch-history.json (a JSON array).",
+    );
+  }
+  const out: SearchHistoryEntry[] = [];
+  for (const raw of json) {
+    if (!raw || typeof raw !== "object") continue;
+    const r = raw as TakeoutRecord;
+
+    // Skip ads — both the homepage-ad title form and the "From Google Ads" detail.
+    if (r.title === "Viewed Ads On YouTube Homepage") continue;
+    if (
+      Array.isArray(r.details) &&
+      r.details.some((d) => typeof d?.name === "string" && d.name.includes("From Google Ads"))
+    ) {
+      continue;
+    }
+
+    // Removed/deleted/private videos carry no titleUrl.
+    const titleUrl = r.titleUrl;
+    if (typeof titleUrl !== "string") continue;
+    // YouTube Music is music, not YouTube watching — exclude it.
+    if (titleUrl.startsWith("https://music.youtube.com")) continue;
+
+    // Resolving a video id also drops community posts (/post/), "Visited <site>"
+    // web visits, and "Searched for …" entries — none yield a video id.
+    const videoId = extractVideoId(titleUrl);
+    if (videoId === null) continue;
+
+    // `time` must be a valid date; normalize to UTC ISO so timestamps sort and
+    // compare lexicographically.
+    if (typeof r.time !== "string" || Number.isNaN(new Date(r.time).getTime())) continue;
+    const createdAt = new Date(r.time).toISOString();
+
+    const videoTitle =
+      typeof r.title === "string" && r.title.startsWith("Watched ")
+        ? r.title.slice("Watched ".length)
+        : r.title;
+    const channel = typeof r.subtitles?.[0]?.name === "string" ? r.subtitles[0].name : undefined;
+
+    out.push({
+      id: "",
+      videoUrl: titleUrl,
+      videoTitle,
+      channel,
+      profileId: "",
+      profileName: "",
+      prompt: "",
+      createdAt,
+    });
+  }
+  return out;
+}
+
 /** Upgrade-only rank for the engagement verdict, picking the "best" of duplicates. */
 const VERDICT_RANK: Record<string, number> = { skip: 1, skim: 2, watch: 3 };
 
