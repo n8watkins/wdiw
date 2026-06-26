@@ -218,6 +218,12 @@ export type Settings = {
   /** Percentage floor for Skimmed; below this threshold counts as Skipped (default 15). */
   skimmedPct: number;
   /**
+   * Daily Shorts limit in minutes (0 = off — the default). When set, WDIW shows a
+   * doom-scroll nudge: a toolbar badge with today's Shorts minutes (green → amber
+   * → red as you approach/exceed it) and a banner in the popup.
+   */
+  shortsLimitMinutes: number;
+  /**
    * My dimension — track-average: show the per-channel engagement average + cue.
    * Computed from auto-tracked ratings (no manual buttons).
    */

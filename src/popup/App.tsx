@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { getLifetimeStats } from "../lib/storage";
+import { getLifetimeStats, getSettings } from "../lib/storage";
 import { localDateKey } from "../lib/constants";
+import { shortsLimitStatus, type ShortsLimitStatus } from "../lib/shorts";
 
 /** seconds → "Xh Ym" / "Ym" / "<1m" / "0m" */
 function fmtSeconds(total: number): string {
@@ -34,19 +35,22 @@ const C = {
 export function App() {
   const [today, setToday] = useState<Today | null>(null);
   const [lifetimeSeconds, setLifetimeSeconds] = useState(0);
+  const [limit, setLimit] = useState<ShortsLimitStatus | null>(null);
 
   useEffect(() => {
     void (async () => {
-      const stats = await getLifetimeStats();
+      const [stats, settings] = await Promise.all([getLifetimeStats(), getSettings()]);
       // "Today" is read from the never-pruned per-day maps, attributed to the day
       // time was actually watched (not a video's first-seen day).
       const key = localDateKey();
+      const shortsSeconds = stats.dailyShortsSeconds?.[key] ?? 0;
       setToday({
         seconds: stats.dailySeconds?.[key] ?? 0,
-        shortsSeconds: stats.dailyShortsSeconds?.[key] ?? 0,
+        shortsSeconds,
         videos: stats.activity?.[key] ?? 0,
       });
       setLifetimeSeconds(stats.secondsWatched);
+      setLimit(shortsLimitStatus(shortsSeconds, settings.shortsLimitMinutes));
     })();
   }, []);
 
@@ -111,6 +115,58 @@ export function App() {
           </>
         )}
       </div>
+
+      {limit && limit.level !== "off" && (
+        <div
+          style={{
+            marginTop: 12,
+            padding: "10px 12px",
+            borderRadius: 10,
+            background:
+              limit.level === "over"
+                ? "rgba(239,68,68,0.12)"
+                : limit.level === "warn"
+                  ? "rgba(234,179,8,0.12)"
+                  : "rgba(34,197,94,0.10)",
+            border: `1px solid ${
+              limit.level === "over"
+                ? "rgba(239,68,68,0.40)"
+                : limit.level === "warn"
+                  ? "rgba(234,179,8,0.40)"
+                  : "rgba(34,197,94,0.30)"
+            }`,
+          }}
+        >
+          <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>
+            {limit.level === "over"
+              ? `⚠️ Over your Shorts limit — ${limit.minutes} / ${limit.limitMinutes} min`
+              : `Shorts today: ${limit.minutes} / ${limit.limitMinutes} min`}
+          </div>
+          <div
+            style={{
+              height: 6,
+              borderRadius: 4,
+              background: "rgba(255,255,255,0.08)",
+              marginTop: 6,
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                width: `${Math.min(100, Math.round(limit.fraction * 100))}%`,
+                height: "100%",
+                background:
+                  limit.level === "over" ? "#ef4444" : limit.level === "warn" ? "#eab308" : "#22c55e",
+              }}
+            />
+          </div>
+          {limit.level !== "over" && (
+            <div style={{ fontSize: 11, color: C.muted, marginTop: 5 }}>
+              {limit.remainingMinutes} min left today
+            </div>
+          )}
+        </div>
+      )}
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14 }}>
         <span style={{ fontSize: 11, color: C.faint }}>

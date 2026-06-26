@@ -3,6 +3,7 @@ import {
   algorithmFeedChannels,
   doomScrollSessions,
   longestDoomScroll,
+  shortsLimitStatus,
   shortsVsLong,
   type DoomScrollSession,
 } from "./shorts";
@@ -291,5 +292,53 @@ describe("shortsVsLong", () => {
       longSeconds: 0,
       longCount: 0,
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// shortsLimitStatus (Step 7-E — the doom-scroll nudge)
+// ---------------------------------------------------------------------------
+
+describe("shortsLimitStatus", () => {
+  it("is 'off' when no limit is set (0 / negative / non-finite)", () => {
+    for (const limit of [0, -5, NaN, Infinity]) {
+      const s = shortsLimitStatus(600, limit);
+      expect(s.level).toBe("off");
+      expect(s.limitMinutes).toBe(0);
+      expect(s.fraction).toBe(0);
+      expect(s.remainingMinutes).toBe(0);
+      expect(s.minutes).toBe(10); // minutes still reported even when off
+    }
+  });
+
+  it("is 'ok' below the 80% warn threshold", () => {
+    // 20 of 40 min = 50%.
+    const s = shortsLimitStatus(20 * 60, 40);
+    expect(s.level).toBe("ok");
+    expect(s.minutes).toBe(20);
+    expect(s.fraction).toBeCloseTo(0.5);
+    expect(s.remainingMinutes).toBe(20);
+  });
+
+  it("is 'warn' at ≥80% but under the limit", () => {
+    // 34 of 40 min = 85%.
+    const s = shortsLimitStatus(34 * 60, 40);
+    expect(s.level).toBe("warn");
+    expect(s.remainingMinutes).toBe(6);
+  });
+
+  it("is 'over' at or beyond 100%, remaining clamps to 0", () => {
+    expect(shortsLimitStatus(40 * 60, 40).level).toBe("over"); // exactly 100%
+    const s = shortsLimitStatus(55 * 60, 40);
+    expect(s.level).toBe("over");
+    expect(s.remainingMinutes).toBe(0);
+    expect(s.minutes).toBe(55);
+  });
+
+  it("clamps negative seconds to 0", () => {
+    const s = shortsLimitStatus(-100, 30);
+    expect(s.minutes).toBe(0);
+    expect(s.level).toBe("ok");
+    expect(s.remainingMinutes).toBe(30);
   });
 });

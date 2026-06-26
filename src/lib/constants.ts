@@ -44,6 +44,7 @@ export const DEFAULT_SETTINGS: Settings = {
   showEngagementStatus: true,
   engagedPct: 60,
   skimmedPct: 15,
+  shortsLimitMinutes: 0,
   trackMyAverage: true,
   skipSponsors: true,
   keepFullCallLog: false,

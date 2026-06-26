@@ -186,3 +186,49 @@ export function shortsVsLong(history: SearchHistoryEntry[]): KindSplit {
   }
   return split;
 }
+
+// ---------------------------------------------------------------------------
+// Doom-scroll nudge / daily Shorts limit (Step 7-E)
+// ---------------------------------------------------------------------------
+
+export type ShortsLimitLevel = "off" | "ok" | "warn" | "over";
+
+/** Today's Shorts usage vs the configured daily limit — drives the toolbar badge
+ *  and the popup nudge banner. Pure so it can be unit-tested and shared by both. */
+export type ShortsLimitStatus = {
+  /** "off" when no limit is set; otherwise ok (<80%) / warn (≥80%) / over (≥100%). */
+  level: ShortsLimitLevel;
+  /** Today's Shorts minutes watched (rounded). */
+  minutes: number;
+  /** The configured limit in minutes (0 when off). */
+  limitMinutes: number;
+  /** todaySeconds / (limit·60), clamped at 0; 0 when off. */
+  fraction: number;
+  /** Whole minutes left before the limit (0 when off or already over). */
+  remainingMinutes: number;
+};
+
+/** Fraction of the limit at which the nudge escalates from "ok" to "warn". */
+const SHORTS_WARN_FRACTION = 0.8;
+
+/**
+ * Compute the daily-Shorts-limit status from today's Shorts seconds and the
+ * configured limit (minutes; ≤0 = off). Pure — shared by the background badge
+ * and the popup banner so they never disagree.
+ */
+export function shortsLimitStatus(
+  todayShortsSeconds: number,
+  limitMinutes: number,
+): ShortsLimitStatus {
+  const seconds = Math.max(0, todayShortsSeconds);
+  const minutes = Math.round(seconds / 60);
+  if (!Number.isFinite(limitMinutes) || limitMinutes <= 0) {
+    return { level: "off", minutes, limitMinutes: 0, fraction: 0, remainingMinutes: 0 };
+  }
+  const limitSeconds = limitMinutes * 60;
+  const fraction = seconds / limitSeconds;
+  const level: ShortsLimitLevel =
+    fraction >= 1 ? "over" : fraction >= SHORTS_WARN_FRACTION ? "warn" : "ok";
+  const remainingMinutes = Math.max(0, Math.ceil((limitSeconds - seconds) / 60));
+  return { level, minutes, limitMinutes, fraction, remainingMinutes };
+}

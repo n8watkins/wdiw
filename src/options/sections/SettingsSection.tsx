@@ -150,6 +150,33 @@ export function SettingsSection() {
       </div>
 
       <div className="settings-group">
+        <div className="settings-group-title"><Icon name="eye" /> Doom-scroll guard</div>
+        <div className="setting-sub" style={{ marginBottom: 12 }}>
+          Set a daily Shorts limit and WDIW nudges you: today's Shorts minutes show on the
+          toolbar icon (green → amber → red), with a banner in the popup as you approach it.
+        </div>
+
+        <div className="setting-row">
+          <div className="setting-info">
+            <div className="setting-label">Daily Shorts limit</div>
+            <div className="setting-sub">How long you want to cap Shorts at each day. Off by default.</div>
+          </div>
+          <div className="setting-control">
+            <select
+              className="setting-select"
+              value={String(settings.shortsLimitMinutes)}
+              onChange={(e) => void update({ shortsLimitMinutes: Number(e.target.value) })}
+            >
+              <option value="0">Off</option>
+              {[10, 15, 20, 30, 45, 60].map((m) => (
+                <option key={m} value={m}>{m} min</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="settings-group">
         <div className="settings-group-title"><Icon name="clock" /> History</div>
 
         <div className="setting-row">
