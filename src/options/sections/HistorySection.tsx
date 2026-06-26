@@ -360,7 +360,7 @@ export function HistorySection() {
                       {entry.durationSeconds ? (
                         <span>
                           Watched {fmtSeconds(entry.watchedSeconds ?? 0)} of {fmtSeconds(entry.durationSeconds)} (
-                          {Math.round(((entry.watchedSeconds ?? 0) / entry.durationSeconds) * 100)}%)
+                          {Math.min(100, Math.round(((entry.watchedSeconds ?? 0) / entry.durationSeconds) * 100))}%)
                         </span>
                       ) : (
                         <span>Watched {fmtSeconds(entry.watchedSeconds ?? 0)}</span>

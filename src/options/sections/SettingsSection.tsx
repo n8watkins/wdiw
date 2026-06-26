@@ -91,10 +91,10 @@ export function SettingsSection() {
         return;
       }
       const r = await importHistoryEntries(entries);
-      const skipped = r.skipped > 0 ? `, skipped ${r.skipped} already present` : "";
+      const skipped = r.skipped > 0 ? `, skipped ${r.skipped.toLocaleString()} already present` : "";
       setImportMsg({
         kind: "ok",
-        text: `Imported ${r.imported} video${r.imported === 1 ? "" : "s"}${skipped}. Your stats now include them.`,
+        text: `Imported ${r.imported.toLocaleString()} video${r.imported === 1 ? "" : "s"}${skipped}. Your stats now include them.`,
       });
     } catch (err) {
       const detail = err instanceof SyntaxError ? "That doesn't look like valid JSON." : err instanceof Error ? err.message : "Could not read that file.";
@@ -311,20 +311,29 @@ export function SettingsSection() {
                 engagement too.
               </li>
             </ul>
-            <div style={{ marginTop: 8 }}>Re-importing the same file is safe.</div>
+            <div style={{ marginTop: 8 }}>
+              Re-importing a Google Takeout file only adds new watches (the rest are skipped).
+              Re-importing a TL;DW / WDIW export skips videos still in your recent history, but a
+              video pruned since a prior import could be counted again.
+            </div>
           </div>
           <input
             ref={fileRef}
             type="file"
             accept="application/json,.json"
             style={{ display: "none" }}
+            disabled={importMsg?.kind === "busy"}
             onChange={(e) => {
               const f = e.target.files?.[0];
               if (f) void onImportFile(f);
               e.target.value = ""; // let the user re-pick the same file
             }}
           />
-          <button className="btn btn-primary btn-icon-text" onClick={() => fileRef.current?.click()}>
+          <button
+            className="btn btn-primary btn-icon-text"
+            disabled={importMsg?.kind === "busy"}
+            onClick={() => fileRef.current?.click()}
+          >
             <Icon name="upload" />
             Choose export file…
           </button>

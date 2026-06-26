@@ -221,7 +221,11 @@ export function shortsLimitStatus(
   limitMinutes: number,
 ): ShortsLimitStatus {
   const seconds = Math.max(0, todayShortsSeconds);
-  const minutes = Math.round(seconds / 60);
+  // Floor (not round) so the displayed minutes never overstate usage past the
+  // raw fraction — otherwise e.g. 2380s/40min rounds to 40/40 ("0 left") while
+  // fraction 0.99 still says "warn". Flooring keeps minutes, level, and
+  // remaining consistent (39 min, warn, 1 left).
+  const minutes = Math.floor(seconds / 60);
   if (!Number.isFinite(limitMinutes) || limitMinutes <= 0) {
     return { level: "off", minutes, limitMinutes: 0, fraction: 0, remainingMinutes: 0 };
   }
@@ -229,8 +233,8 @@ export function shortsLimitStatus(
   const fraction = seconds / limitSeconds;
   const level: ShortsLimitLevel =
     fraction >= 1 ? "over" : fraction >= SHORTS_WARN_FRACTION ? "warn" : "ok";
-  // Derive remaining from the displayed `minutes` (not raw seconds) so the two
-  // numbers always reconcile — e.g. "35 / 40 min · 5 left", never 35 + 6.
+  // Derive remaining from the displayed (floored) `minutes`, not raw seconds, so
+  // the two numbers always reconcile — e.g. "35 / 40 min · 5 left", never 35 + 6.
   const remainingMinutes = Math.max(0, limitMinutes - minutes);
   return { level, minutes, limitMinutes, fraction, remainingMinutes };
 }

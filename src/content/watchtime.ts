@@ -33,23 +33,16 @@
 
 import type { WatchProgressMessage } from "../types";
 import { countableSeconds } from "../lib/watchgate";
+import { extractVideoId } from "../lib/constants";
 
 const log = (...args: unknown[]) => console.log("[WDIW WT]", ...args);
 
 // ---- inlined YouTube scrapers ----------------------------------------------
 
-const currentVideoId = (): string => {
-  try {
-    // Long-form watch pages carry the id in ?v=; Shorts live at /shorts/<id>
-    // (no query param), so fall back to the pathname or they never track.
-    const v = new URLSearchParams(location.search).get("v");
-    if (v) return v;
-    const m = /^\/shorts\/([^/?#]+)/.exec(location.pathname);
-    return m?.[1] ?? "";
-  } catch {
-    return "";
-  }
-};
+// The current video id, via the SHARED extractVideoId so the content script and
+// the background's history-matching key videos identically (handles /watch?v=,
+// /shorts/<id>, and youtu.be). "" on non-video pages.
+const currentVideoId = (): string => extractVideoId(location.href) ?? "";
 
 /** True when the page is a Shorts player (/shorts/<id>). */
 const onShortsPage = (): boolean => location.pathname.startsWith("/shorts/");
@@ -117,7 +110,11 @@ function getVideoMeta(): { durationSeconds: number; channel: string; avatarUrl?:
 
 /** Build the WATCH_PROGRESS `video` payload: url + title + channel + avatar. */
 function currentVideoMeta(): WatchProgressMessage["video"] {
-  const title = document.title.replace(/\s*-\s*YouTube$/, "").trim() || undefined;
+  const title =
+    document.title
+      .replace(/^\(\d+\)\s*/, "") // drop the "(3) " unread-count prefix
+      .replace(/\s*-\s*YouTube$/, "")
+      .trim() || undefined;
   const meta = getVideoMeta();
   return {
     url: location.href,
@@ -274,7 +271,13 @@ function attach(): void {
 
 function handleNav(): void {
   const vid = currentVideoId();
-  if (vid === lastHandledVid) return;
+  if (vid === lastHandledVid) {
+    // Same video id, but YouTube may have swapped the <video> element on an
+    // in-place remount — re-wire our listeners so tracking doesn't silently die
+    // on a detached element. attach() no-ops when it's already the same element.
+    if (vid) attach();
+    return;
+  }
 
   // Report any pending delta for the OLD video before resetting. This runs
   // synchronously up to the sendMessage await, so it captures the old

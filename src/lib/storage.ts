@@ -33,27 +33,6 @@ export async function setHistory(history: SearchHistoryEntry[]): Promise<void> {
   await chrome.storage.local.set({ [STORAGE_KEYS.history]: history });
 }
 
-/**
- * Accumulated watched-seconds for a video from history (0 if none). A video can
- * have MULTIPLE history rows (e.g. one without watchedSeconds shadowing the stub
- * that holds the total), so we take the max over ALL matching entries rather than
- * trusting first-match. Pure helper exported for tests. Used by the watch-time
- * engine to RESTORE progress on reload so a refresh doesn't reset the engagement
- * measurement.
- */
-export function watchedSecondsFromHistory(
-  history: SearchHistoryEntry[],
-  videoId: string,
-): number {
-  let max = 0;
-  for (const e of history) {
-    if (extractVideoId(e.videoUrl) === videoId && (e.watchedSeconds ?? 0) > max) {
-      max = e.watchedSeconds!;
-    }
-  }
-  return max;
-}
-
 // --- write serialization (mutex) -------------------------------------------
 // chrome.storage has no atomic read-modify-write. Many concurrent RMW sequences
 // run — WATCH_PROGRESS fires from every open YouTube tab (all routed to the one
@@ -114,7 +93,7 @@ export async function mutateHistory(
  * - If none exists and the delta > 0 or a non-null verdict would result: creates
  *   a lightweight stub entry.
  */
-export async function recordWatchProgress(args: {
+async function recordWatchProgressLocked(args: {
   videoId: string;
   deltaSeconds: number;
   durationSeconds: number;
@@ -276,6 +255,18 @@ export async function recordWatchProgress(args: {
       }
     });
   }
+}
+
+/**
+ * Record live watch progress for a video — ATOMIC: the history write AND the
+ * stats bump run under one outer lock, so two concurrent records of the SAME
+ * video (e.g. it's open in two tabs) can't interleave across the separate
+ * history/stats locks and mis-bucket the engaged/skimmed/skipped counters.
+ */
+export async function recordWatchProgress(
+  args: Parameters<typeof recordWatchProgressLocked>[0],
+): Promise<void> {
+  await withWriteLock("watchRecord", () => recordWatchProgressLocked(args));
 }
 
 // --- Lifetime usage stats -------------------------------------------------

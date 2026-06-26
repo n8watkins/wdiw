@@ -341,4 +341,14 @@ describe("shortsLimitStatus", () => {
     expect(s.level).toBe("ok");
     expect(s.remainingMinutes).toBe(30);
   });
+
+  it("floors minutes just under the boundary so minutes/level/remaining reconcile", () => {
+    // 2380s = 39m 40s of a 40-min limit. Flooring → 39 min (not 40), the raw
+    // fraction 0.99 → "warn", and remaining = 40 - 39 = 1. (Rounding would have
+    // shown "40/40 · 0 left" while still flagging warn — a contradiction.)
+    const s = shortsLimitStatus(2380, 40);
+    expect(s.level).toBe("warn");
+    expect(s.minutes).toBe(39);
+    expect(s.remainingMinutes).toBe(1);
+  });
 });

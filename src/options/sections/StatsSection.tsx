@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import type { LifetimeStats, SearchHistoryEntry } from "../../types";
 import { getLifetimeStats, getHistory } from "../../lib/storage";
-import { computeChannelStats } from "../../lib/history";
 import {
   engagedRatio,
   mostEngagedChannels,
@@ -277,10 +276,10 @@ function WindowedView({
     { value: cur.engagement.skipped, color: "#ef4444", label: "Skipped" },
   ];
 
-  // activeDays comes from the never-pruned activity map, so a long window (year)
-  // can have real activity even when in-window history has been pruned away —
-  // don't show "nothing watched" in that case.
-  if (cur.videosWithMeta === 0 && cur.watchedSeconds === 0 && cur.activeDays === 0) {
+  // `summaries` (distinct videos/day) + watchedSeconds are never-pruned, so they
+  // are the honest "did anything happen this window" signal even when the in-window
+  // HISTORY has been pruned away.
+  if (cur.summaries === 0 && cur.watchedSeconds === 0) {
     return <div className="empty-state" style={{ marginTop: 8 }}>Nothing watched this {label} yet.</div>;
   }
 
@@ -294,10 +293,21 @@ function WindowedView({
           <DeltaChip delta={pctDelta(cur.watchedSeconds, prev.watchedSeconds)} />
         </div>
         <div className="stats-hero-line">
-          <strong>{fmtCount(cur.videosWithMeta)}</strong>{" "}
-          {cur.videosWithMeta === 1 ? "video" : "videos"} watched.
+          <strong>{fmtCount(cur.summaries)}</strong>{" "}
+          {cur.summaries === 1 ? "video" : "videos"} watched.
         </div>
       </div>
+
+      {/* When in-window history has been pruned, the engagement-derived blocks
+          below cover fewer videos than the never-pruned time/active-days above —
+          say so rather than render a contradiction (e.g. "40h · 0 videos"). */}
+      {cur.videosWithMeta < cur.summaries && (
+        <div className="stats-window-note" style={{ marginBottom: 16 }}>
+          Finish rate &amp; channels below reflect your <strong>retained</strong> history
+          ({fmtCount(cur.videosWithMeta)} of {fmtCount(cur.summaries)} videos kept); time &amp; active
+          days cover the whole {label}.
+        </div>
+      )}
 
       {/* Finish-rate donut + what you watched */}
       <div className="stats-grid stats-mid-row">
@@ -356,9 +366,9 @@ function WindowedView({
       <div className="stats-grid stats-small-row">
         <div className="stat-card stat-card-sm" style={{ "--ca": "#22c55e", "--cg": "rgba(34,197,94,0.15)" } as CSSProperties}>
           <div className="stat-sm-icon">📺</div>
-          <div className="stat-sm-num" style={{ color: "#4ade80" }}>{fmtCount(cur.videosWithMeta)}</div>
+          <div className="stat-sm-num" style={{ color: "#4ade80" }}>{fmtCount(cur.summaries)}</div>
           <div className="stat-sm-label">Videos watched</div>
-          <div className="stat-sm-sub"><DeltaChip delta={pctDelta(cur.videosWithMeta, prev.videosWithMeta)} /></div>
+          <div className="stat-sm-sub"><DeltaChip delta={pctDelta(cur.summaries, prev.summaries)} /></div>
         </div>
         <div className="stat-card stat-card-sm" style={{ "--ca": "#06b6d4", "--cg": "rgba(6,182,212,0.15)" } as CSSProperties}>
           <div className="stat-sm-icon">🗓</div>
@@ -376,11 +386,6 @@ function WindowedView({
         </div>
       </div>
 
-      {kind === "year" && (
-        <div className="stats-window-note">
-          Year view reflects your retained history — older entries may be pruned by your history limit / auto-delete settings.
-        </div>
-      )}
     </div>
   );
 }
@@ -439,22 +444,18 @@ export function StatsSection() {
     );
   }
 
-  // Derived values. Per-channel rankings draw from the PERSISTED stats.channels
-  // map (the never-pruned source of truth) so "most engaged" / "time spent"
-  // survive history pruning — unlike computeChannelStats(history), which only
-  // sees the retained window. `channelStats` (history-derived) is still used for
-  // "Channels explored" so that count matches the rest of the history views.
-  const channelStats = computeChannelStats(history);
+  // Derived values. All all-time figures draw from the PERSISTED stats (the
+  // never-pruned source of truth) so the hero, rankings, and "Channels explored"
+  // are mutually consistent — none use computeChannelStats(history), which only
+  // sees the retained window and would contradict the hero after pruning.
   const timeRanked = topChannelsByTime(stats.channels, 5);
   const engagedRanked = mostEngagedChannels(stats.channels, 5);
   const videoRanked = topChannelsByVideos(stats.channels, 5);
   // Lifetime "Top channel" = most time spent (engagement-meaningful), from the
   // persisted map.
   const topChannel = timeRanked[0];
-  const uniqueChannels = channelStats.length;
-  // Global counter (channel-independent) so it stays consistent with the global
-  // shortsCount in the Shorts split — the per-channel sum would miss channel-less
-  // / evicted-channel videos and make `longCount = total − shorts` skew.
+  // Global counters (channel-independent) so totalVideos stays consistent with the
+  // global shortsCount in the Shorts split, and channelCount with the rankings.
   const totalVideos = stats.videosWatched ?? 0;
   const channelCount = Object.keys(stats.channels ?? {}).length;
   const streak = computeStreak(stats.activity);
@@ -727,7 +728,7 @@ export function StatsSection() {
 
         <div className="stat-card stat-card-sm" style={{ "--ca": "#06b6d4", "--cg": "rgba(6,182,212,0.15)" } as CSSProperties}>
           <div className="stat-sm-icon">📡</div>
-          <div className="stat-sm-num" style={{ color: "#22d3ee" }}>{fmtCount(uniqueChannels)}</div>
+          <div className="stat-sm-num" style={{ color: "#22d3ee" }}>{fmtCount(channelCount)}</div>
           <div className="stat-sm-label">Channels explored</div>
           <div className="stat-sm-sub">in your history</div>
         </div>

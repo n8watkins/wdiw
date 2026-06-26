@@ -71,13 +71,19 @@ type TakeoutRecord = {
 export function looksLikeTakeout(json: unknown): boolean {
   return (
     Array.isArray(json) &&
-    json.slice(0, 50).some(
-      (r) =>
-        r &&
-        typeof r === "object" &&
-        typeof (r as { titleUrl?: unknown }).titleUrl === "string" &&
-        typeof (r as { time?: unknown }).time === "string",
-    )
+    json.slice(0, 50).some((r) => {
+      if (!r || typeof r !== "object") return false;
+      const rec = r as { titleUrl?: unknown; time?: unknown; header?: unknown };
+      const hasTime = typeof rec.time === "string";
+      // A Takeout-shaped record either carries a video URL + time, OR (for a
+      // leading window of removed/ad records with no titleUrl) is a YouTube
+      // activity record with a time — so a run of those up front doesn't sink
+      // the sniff to a false-negative.
+      return (
+        hasTime &&
+        (typeof rec.titleUrl === "string" || rec.header === "YouTube")
+      );
+    })
   );
 }
 
@@ -131,7 +137,7 @@ export function parseTakeoutHistory(json: unknown): SearchHistoryEntry[] {
     // Resolving a video id also drops community posts (/post/), "Visited <site>"
     // web visits, and "Searched for …" entries — none yield a video id.
     const videoId = extractVideoId(titleUrl);
-    if (videoId === null) continue;
+    if (!videoId) continue;
 
     // `time` must be a valid date; normalize to UTC ISO so timestamps sort and
     // compare lexicographically.
@@ -207,6 +213,7 @@ export function foldImportedEntries(
 ): LifetimeStats {
   stats.dailySeconds ??= {};
   stats.dailyShortsSeconds ??= {};
+  stats.activity ??= {};
   if (!stats.channels) stats.channels = {};
 
   for (const e of records) {

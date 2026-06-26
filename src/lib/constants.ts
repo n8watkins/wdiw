@@ -94,11 +94,12 @@ export function extractVideoId(url: string): string | null {
     const u = new URL(url);
     const host = u.hostname.replace(/^www\./, "");
     if (host === "youtube.com" || host === "m.youtube.com") {
-      if (u.pathname === "/watch") return u.searchParams.get("v");
-      const shorts = /^\/shorts\/([^/?]+)/.exec(u.pathname);
-      if (shorts) return shorts[1];
+      if (u.pathname === "/watch") return u.searchParams.get("v") || null;
+      const shorts = /^\/shorts\/([^/?#]+)/.exec(u.pathname);
+      if (shorts) return shorts[1]!;
     }
-    if (host === "youtu.be") return u.pathname.slice(1) || null;
+    // youtu.be/<id>[/...] — keep only the first path segment.
+    if (host === "youtu.be") return u.pathname.slice(1).split("/")[0] || null;
   } catch {
     // fall through
   }

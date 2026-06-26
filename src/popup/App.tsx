@@ -196,41 +196,45 @@ export function App() {
         </div>
       )}
 
-      {/* Capture-health + pause control */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 8,
-          marginTop: 14,
-          paddingTop: 12,
-          borderTop: `1px solid ${C.border}`,
-        }}
-      >
-        <span style={{ fontSize: 11, color: tracking === false || stale ? "#fbbf24" : C.faint }}>
-          {tracking === false
-            ? "⏸ Tracking paused"
-            : lastRecorded
-              ? `${stale ? "⚠ " : ""}Last tracked ${timeAgo(lastRecorded)}`
-              : "Nothing tracked yet"}
-        </span>
-        <button
-          onClick={() => void toggleTracking()}
+      {/* Capture-health + pause control — gated on settings having loaded so the
+          footer doesn't briefly flash "Pause" / "Nothing tracked yet" before the
+          real tracking state is known. */}
+      {tracking !== null && (
+        <div
           style={{
-            background: "none",
-            border: `1px solid ${C.border}`,
-            color: C.muted,
-            borderRadius: 6,
-            padding: "4px 10px",
-            fontSize: 11,
-            fontWeight: 600,
-            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 8,
+            marginTop: 14,
+            paddingTop: 12,
+            borderTop: `1px solid ${C.border}`,
           }}
         >
-          {tracking === false ? "Resume" : "Pause"}
-        </button>
-      </div>
+          <span style={{ fontSize: 11, color: tracking === false || stale ? "#fbbf24" : C.faint }}>
+            {tracking === false
+              ? "⏸ Tracking paused"
+              : lastRecorded
+                ? `${stale ? "⚠ " : ""}Last tracked ${timeAgo(lastRecorded)}`
+                : "Nothing tracked yet"}
+          </span>
+          <button
+            onClick={() => void toggleTracking()}
+            style={{
+              background: "none",
+              border: `1px solid ${C.border}`,
+              color: C.muted,
+              borderRadius: 6,
+              padding: "4px 10px",
+              fontSize: 11,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            {tracking === false ? "Resume" : "Pause"}
+          </button>
+        </div>
+      )}
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 12 }}>
         <span style={{ fontSize: 11, color: C.faint }}>

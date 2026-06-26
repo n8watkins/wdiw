@@ -103,14 +103,18 @@ chrome.runtime.onMessage.addListener(
   (message: RuntimeMessage, _sender, sendResponse) => {
     if (message.type === "WATCH_PROGRESS") {
       const { videoId, deltaSeconds, durationSeconds, isShort, video } = message;
+      // Defensive: a buggy or forged message must never poison lifetime stats.
+      // Legit reports are ~10s of content; clamp to [0, 1h] and drop non-finite.
+      const safeDelta = Number.isFinite(deltaSeconds) ? Math.max(0, Math.min(deltaSeconds, 3600)) : 0;
+      const safeDuration = Number.isFinite(durationSeconds) && durationSeconds > 0 ? durationSeconds : 0;
       void (async () => {
         try {
           const settings = await getSettings();
           if (settings.trackEngagement) {
             await recordWatchProgress({
               videoId,
-              deltaSeconds,
-              durationSeconds,
+              deltaSeconds: safeDelta,
+              durationSeconds: safeDuration,
               // WDIW has no summary panel — playback is the only signal.
               sawSummary: false,
               isShort,
