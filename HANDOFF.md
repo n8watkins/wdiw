@@ -42,18 +42,20 @@ feasibility in [`../tldw/docs/ANALYTICS_SPLIT.md`](../tldw/docs/ANALYTICS_SPLIT.
 | `b10428c` `4d1c325` | **Step 7-E**: doom-scroll nudge — daily Shorts limit (Settings) → toolbar badge + popup banner (`shortsLimitStatus`). `4d1c325` = a second deep review's fixes (global `videosWatched` counter for a consistent Shorts/long split; badge listener short-circuit; nudge-number reconciliation). |
 | `8f866c5` | **Step 7-D polish (completes Step 7)**: "When you watch" time-of-day heatmap (`dashboards.hourlyHeatmap`) + Shorts/Long/All kind filter on Channels + History. |
 | `54bf935` | **Step 5a — TL;DW import bridge**: `lib/migrate.ts` (parse/collapse/fold) + `storage.importHistoryEntries` + Settings → Import card. Imports a TL;DW history export (or WDIW backup) and rebuilds the stats. |
+| `4214df8` | **Step 5b — Google Takeout importer (completes Step 5)**: `parseTakeoutHistory` (cleans the Takeout array) + `importTakeoutEvents` (watermarked, idempotent) + auto-detect in Settings → Import + "Most-watched channels" by-count card. Takeout = counts/activity only (no durations/engagement; Shorts indistinguishable). |
 
-**Verified:** `npm run typecheck` clean, **121/121** tests, `npm run build` OK. **Step 7
-is complete; Step 5a (TL;DW import) done.** The extension loads, accrues data (incl. Shorts), renders the dashboards
+**Verified:** `npm run typecheck` clean, **137/137** tests, `npm run build` OK. **Steps 7
+and 5 are complete** (live capture + dashboards + nudge + TL;DW import + Google Takeout
+import). The extension loads, accrues data (incl. Shorts), renders the dashboards
 (per-channel time/engagement, Shorts split, peak-hours heatmap, kind filters), and shows
 the doom-scroll nudge. A loadable build is copied to `C:\Users\natha\Downloads\watchprint-dist`
 for unpacked install (`build` is plain `vite build` — no auto Windows copy; re-copy
 `dist/` after rebuilds).
 
-**NOT done yet (★ next = Takeout import):** the TL;DW → WDIW import bridge is **done**
-(Settings → Import). Remaining is the **Google Takeout `watch-history.json`** backfill
-importer (Step 5b) for years of past history, plus the step 2.5 type-trim cleanup.
-(Name: **WDIW**; repo `n8watkins/wdiw`.)
+**NOT done yet:** the build-plan steps are **done** (1–7 + migration). Remaining work is
+polish/roadmap: the step 2.5 type-trim cleanup (dead summarizer types/CSS), per-hour
+never-pruned data so the time-of-day heatmap survives history pruning, accuracy hardening,
+and the `IDEAS.md` roadmap. (Name: **WDIW**; repo `n8watkins/wdiw`.)
 
 ## How the capture works (the data flow)
 
@@ -90,14 +92,18 @@ Shorts track (capture fixed); Stats shows the Shorts-vs-long split, longest doom
 "channels the algorithm feeds you", and the peak-hours heatmap; Channels + History have a
 kind filter; and the **nudge** ships (daily Shorts limit → toolbar badge + popup banner).
 
-### 3. ◐ Step 5 — Migration from TL;DW + Takeout backfill (part a done; ★ Takeout next)
-✅ **TL;DW → WDIW import bridge** (`54bf935`): Settings → Import loads a TL;DW history
-export (or a WDIW backup) and rebuilds per-channel + lifetime stats by folding the videos
-in (`lib/migrate.ts` + `storage.importHistoryEntries`). TL;DW unchanged ("export as is").
-☐ **★ Google Takeout `watch-history.json` importer** — the big backfill; a separate
-parser mapping Takeout rows → `SearchHistoryEntry`, then reuse `collapseByVideo` +
-`importHistoryEntries`. No durations in Takeout. **Data-access verified:** no API returns
-watch history with or without Google auth (removed 2016).
+### 3. ✅ Step 5 — Migration from TL;DW + Takeout backfill (complete)
+Settings → Import loads, auto-detecting the file: a **TL;DW history export / WDIW backup**
+(`importHistoryEntries`, rebuilds time + engagement) or a **Google Takeout
+`watch-history.json`** (`parseTakeoutHistory` + `importTakeoutEvents`, watermarked;
+counts/activity only — no durations/engagement, Shorts indistinguishable). **Data-access
+verified:** no API returns watch history with or without Google auth (removed 2016);
+Takeout (manual self-export) is the only ToS-clean backfill.
+
+### ★ Next — polish & roadmap
+Build plan (steps 1–7 + migration) is done. Candidates: step 2.5 type-trim; never-pruned
+per-hour data (so the time-of-day heatmap isn't limited to retained history); accuracy
+hardening + the `IDEAS.md` roadmap.
 
 ### 4. Step 2.5 — finish the trim (cleanup, low priority)
 `types/index.ts` still carries a dead summarizer/message/sponsor type block (left

@@ -51,18 +51,21 @@ never-pruned heatmap / active-days signal), `HISTORY_EXPIRY_OPTIONS`. Deferred f
 original Watchprint angle: the **Shorts-vs-long-form split** + **time-of-day heatmap** →
 now Step 7.
 
-## Step 5 — Migration + history (◐ part a done; Takeout next)
+## ✅ Step 5 — Migration + history (complete)
 - ✅ **Export-from-TL;DW → import bridge** (commit `54bf935`). chrome.storage is
   per-extension, and TL;DW only exports its **history** (Options → History → Export:
   `{ source, entries }`), not the `tldwStats` aggregates — so WDIW imports that JSON
   **as-is** and **rebuilds** the per-channel + lifetime stats by folding the videos in
   (`lib/migrate.ts`: parse/collapseByVideo/foldImportedEntries + `storage.importHistoryEntries`;
   UI at Settings → Import). TL;DW untouched; the shared shape doubles as WDIW backup-restore.
-- ☐ **Google Takeout `watch-history.json` importer** — seed *years* of past history (the
-  only ToS-clean backfill; Takeout has **no watch durations**, so enrich what we can and
-  be honest). **NEXT.** Different format from the TL;DW export — a separate parser that
-  maps Takeout rows → `SearchHistoryEntry` (titleUrl→videoUrl, time→createdAt,
-  subtitles[0]→channel), then reuses `collapseByVideo` + `importHistoryEntries`.
+- ✅ **Google Takeout `watch-history.json` importer** (commit `4214df8`). `parseTakeoutHistory`
+  cleans the Takeout array (drops ads / removed / Music / posts / searches), `importTakeoutEvents`
+  folds each watch EVENT with a `takeoutThrough` watermark (idempotent + incremental). Settings →
+  Import auto-detects Takeout vs export. **Schema (researched):** each record has `title`
+  ("Watched …"), `titleUrl` (canonical `watch?v=` — **Shorts normalized in, not distinguishable**),
+  `subtitles[0].name` (channel), `time` (full ISO UTC date+time). **No durations, no engagement** →
+  backfills video / channel / activity counts only (surfaced by the new "Most-watched channels"
+  by-count card + the heatmaps). Users export: **YouTube and YouTube Music → history → JSON**.
 
 ## Step 6 — Positioning
 Lead on the competitive white space (see ANALYTICS_SPLIT.md): per-channel,
