@@ -12,19 +12,19 @@ export default defineManifest({
   description:
     "WDIW (What Did I Watch?) — analyze your YouTube usage: per-channel watch time, engagement, and a Shorts / doom-scroll breakdown, computed locally. No account, no servers.",
   icons: {
-    16: "icons/tl-dw-16.png",
-    32: "icons/tl-dw-32.png",
-    48: "icons/tl-dw-48.png",
-    128: "icons/tl-dw-128.png",
+    16: "icons/wdiw-16.png",
+    32: "icons/wdiw-32.png",
+    48: "icons/wdiw-48.png",
+    128: "icons/wdiw-128.png",
   },
   action: {
     default_popup: "src/popup/index.html",
     default_title: "WDIW — What Did I Watch?",
     default_icon: {
-      16: "icons/tl-dw-16.png",
-      32: "icons/tl-dw-32.png",
-      48: "icons/tl-dw-48.png",
-      128: "icons/tl-dw-128.png",
+      16: "icons/wdiw-16.png",
+      32: "icons/wdiw-32.png",
+      48: "icons/wdiw-48.png",
+      128: "icons/wdiw-128.png",
     },
   },
   options_ui: {
