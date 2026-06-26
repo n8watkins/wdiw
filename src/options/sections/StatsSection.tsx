@@ -522,7 +522,7 @@ export function StatsSection() {
         <div className="stat-card stat-card-donut" style={{ "--ca": "#8b5cf6", "--cg": "rgba(139,92,246,0.15)" } as CSSProperties}>
           <div className="stat-card-label">Engagement breakdown</div>
           {donutTotal === 0 ? (
-            <div className="stat-empty">Watch some videos — Watchprint rates them automatically.</div>
+            <div className="stat-empty">Watch some videos — WDIW rates them automatically.</div>
           ) : (
             <div className="stat-donut-body">
               <DonutChart slices={donutSlices} size={130} />

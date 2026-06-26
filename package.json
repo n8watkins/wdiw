@@ -1,7 +1,7 @@
 {
-  "name": "watchprint",
+  "name": "wdiw",
   "version": "0.0.1",
-  "description": "Analyze your YouTube usage — per-channel watch time and engagement, computed locally. Companion to TL;DW. (Working name — rename freely.)",
+  "description": "WDIW (What Did I Watch?) — analyze your YouTube usage: per-channel watch time, engagement, and a Shorts / doom-scroll breakdown, computed locally. Companion to TL;DW.",
   "private": true,
   "license": "MIT",
   "author": "Nathan Watkins",

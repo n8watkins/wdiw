@@ -1,11 +1,11 @@
 /**
- * Watch-time CAPTURE content script for Watchprint.
+ * Watch-time CAPTURE content script for WDIW (What Did I Watch?).
  *
  * Runs on youtube.com watch pages (isolated world). It observes the player and
  * periodically reports how many content-seconds the user has actually watched
  * for each video to the background worker via WATCH_PROGRESS messages. The
  * background reads settings and records the deltas — this script never reads
- * settings or summarizes anything (Watchprint is local-only analytics).
+ * settings or summarizes anything (WDIW is local-only analytics).
  *
  * Self-contained: the YouTube meta scrapers (video id, channel info, video
  * meta) are inlined here so the script has no runtime dependencies beyond the
@@ -32,7 +32,7 @@
 
 import type { WatchProgressMessage } from "../types";
 
-const log = (...args: unknown[]) => console.log("[Watchprint WT]", ...args);
+const log = (...args: unknown[]) => console.log("[WDIW WT]", ...args);
 
 // ---- inlined YouTube scrapers ----------------------------------------------
 
@@ -183,7 +183,7 @@ async function reportProgress(forced = false): Promise<void> {
     videoId: vid,
     deltaSeconds: delta,
     durationSeconds: dur,
-    sawSummary: false, // Watchprint never summarizes.
+    sawSummary: false, // WDIW never summarizes.
     isShort: currentIsShort,
     video: videoMeta,
   };

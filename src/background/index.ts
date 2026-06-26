@@ -8,12 +8,12 @@ import {
 } from "../lib/storage";
 import type { RuntimeMessage } from "../types";
 
-// Watchprint service worker — local-only watch-behavior recorder.
+// WDIW (What Did I Watch?) service worker — local-only watch-behavior recorder.
 //
 // The YouTube content script (src/content/watchtime.ts) observes playback and
 // broadcasts WATCH_PROGRESS deltas; this worker accumulates them via
 // recordWatchProgress() under the storage write-lock. No Gemini, no AI, no
-// destination injectors — Watchprint only records what you watch.
+// destination injectors — WDIW only records what you watch.
 
 /**
  * Bound storage even when the user goes quiet. History expiry/trim normally run
@@ -37,7 +37,7 @@ async function startupStorageSweep(): Promise<void> {
 
 chrome.runtime.onInstalled.addListener(() => {
   void getLifetimeStats().then((s) => {
-    console.log("[watchprint] installed — stats since", s.since || "(fresh install)");
+    console.log("[WDIW] installed — stats since", s.since || "(fresh install)");
   });
   void startupStorageSweep();
 });
@@ -58,7 +58,7 @@ chrome.runtime.onMessage.addListener(
               videoId,
               deltaSeconds,
               durationSeconds,
-              // Watchprint has no summary panel — playback is the only signal.
+              // WDIW has no summary panel — playback is the only signal.
               sawSummary: false,
               isShort,
               video,

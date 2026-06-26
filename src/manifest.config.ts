@@ -1,16 +1,16 @@
 import { defineManifest } from "@crxjs/vite-plugin";
 import pkg from "../package.json";
 
-// Watchprint — the post-watch "what have I been watching?" companion to TL;DW.
+// WDIW (What Did I Watch?) — the post-watch "what have I been watching?" companion to TL;DW.
 // Local-only: it observes the videos you watch (no account, no servers) and
 // reports per-channel time + engagement. Icons are TL;DW placeholders for now.
 export default defineManifest({
   manifest_version: 3,
-  name: "Watchprint",
-  short_name: "Watchprint",
+  name: "WDIW — What Did I Watch?",
+  short_name: "WDIW",
   version: pkg.version,
   description:
-    "Analyze your YouTube usage — per-channel watch time and engagement, computed locally on the videos you watch. No account, no servers.",
+    "WDIW (What Did I Watch?) — analyze your YouTube usage: per-channel watch time, engagement, and a Shorts / doom-scroll breakdown, computed locally. No account, no servers.",
   icons: {
     16: "icons/tl-dw-16.png",
     32: "icons/tl-dw-32.png",
@@ -19,7 +19,7 @@ export default defineManifest({
   },
   action: {
     default_popup: "src/popup/index.html",
-    default_title: "Watchprint — your YouTube usage",
+    default_title: "WDIW — What Did I Watch?",
     default_icon: {
       16: "icons/tl-dw-16.png",
       32: "icons/tl-dw-32.png",

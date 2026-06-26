@@ -48,7 +48,7 @@ export function OptionsApp() {
           <img className="sidebar-icon" src={ICON_URL} alt="" />
           <div>
             <span className="logo-text">
-              Watchprint
+              WDIW
               <span
                 title="Extension version"
                 style={{
@@ -69,7 +69,7 @@ export function OptionsApp() {
                 v{VERSION}
               </span>
             </span>
-            <span className="logo-sub">Your YouTube usage</span>
+            <span className="logo-sub">What Did I Watch?</span>
           </div>
         </div>
         <nav>

@@ -5,6 +5,14 @@
 > on long-form vs. Shorts — computed **live and local**. The name should lead with
 > attention / insight, not just a stopwatch. Pick one, riff, or mix.
 
+## ✅ Chosen: WDIW ("What Did I Watch?")  — 2026-06-25
+The playful TL;DW counterpart won out (decide → reflect). Displayed as **WDIW** with
+the expansion **"What Did I Watch?"** as the tagline (mirrors TL;DW / "Too Long; Didn't
+Watch"). Set in `package.json`, `manifest.config.ts`, and the popup/options copy. The
+internal `tldw*` storage keys and the GitHub repo/dir (`watchprint`) are intentionally
+left as-is for now (key rename needs a data migration — step 5). The shortlist below is
+kept for posterity.
+
 ## Top picks (my lean)
 1. **Attune** — "tune in to how you actually watch." Attention-led, brandable, calm.
    `attune.app` / "Attune for YouTube". Pairs nicely opposite TL;DW (decide → reflect).

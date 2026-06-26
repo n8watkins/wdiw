@@ -115,7 +115,7 @@ export function HistorySection() {
   function exportHistory() {
     const payload = {
       exportedAt: new Date().toISOString(),
-      source: "Watchprint",
+      source: "WDIW",
       entries,
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], {
@@ -124,7 +124,7 @@ export function HistorySection() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `watchprint-history-${new Date().toISOString().slice(0, 10)}.json`;
+    link.download = `wdiw-history-${new Date().toISOString().slice(0, 10)}.json`;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -326,7 +326,7 @@ export function HistorySection() {
       {deleteId && (
         <ConfirmDialog
           title="Delete this entry?"
-          body="This removes the video from your Watchprint history."
+          body="This removes the video from your WDIW history."
           confirmLabel="Delete Entry"
           onCancel={() => setDeleteId(null)}
           onConfirm={() => void deleteEntry(deleteId)}

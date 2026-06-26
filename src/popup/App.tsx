@@ -63,7 +63,7 @@ export function App() {
       }}
     >
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-        <strong style={{ fontSize: 16, letterSpacing: "0.04em", color: C.accent }}>Watchprint</strong>
+        <strong style={{ fontSize: 16, letterSpacing: "0.04em", color: C.accent }}>WDIW</strong>
         <span style={{ fontSize: 11, color: C.faint }}>Today</span>
       </div>
 

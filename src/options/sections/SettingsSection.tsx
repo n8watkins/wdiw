@@ -255,7 +255,7 @@ export function SettingsSection() {
       {confirmReset && (
         <ConfirmDialog
           title="Reset all settings?"
-          body="This restores Watchprint settings to their defaults. Your watch data is not changed."
+          body="This restores WDIW settings to their defaults. Your watch data is not changed."
           confirmLabel="Reset settings"
           tone="primary"
           onCancel={() => setConfirmReset(false)}

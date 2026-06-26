@@ -6,7 +6,7 @@ what these already decide. _Last updated: 2026-06-25._
 
 ## Project summary
 
-**Watchprint** (working name) is a **local-only Manifest V3 Chrome extension** that
+**WDIW** ("What Did I Watch?") is a **local-only Manifest V3 Chrome extension** that
 analyzes **your own YouTube usage** — per-channel **watch time** and **engagement**
 (which channels you finish vs. abandon). It's the **post-watch** companion to
 **TL;DW** (a YouTube summarizer at `../tldw`): TL;DW answers *"should I watch /
@@ -47,7 +47,7 @@ install (Watchprint's `build` is plain `vite build` — no auto Windows copy; re
 
 **NOT done yet:** Step 7 **E (Shorts nudge/limit)** + the time-of-day heatmap and the
 Channels/History **kind filter** (the rest of D) — see `PLAN.md` Step 7; the step 2.5
-type-trim cleanup; migration/Takeout (step 5). The **name** is provisional.
+type-trim cleanup; migration/Takeout (step 5). (Name chosen: **WDIW**.)
 
 ## How the capture works (the data flow)
 
@@ -115,9 +115,10 @@ incumbent complaint), source attribution, trends, optional goals/nudges.
   code post-decoupling.
 - **No historical backfill** is inherent — surface honest empty states ("tracks from
   install forward") and lean on the planned Takeout import.
-- **Name is provisional** ("Watchprint") — it's in `package.json`, `manifest.config.ts`
-  name, and popup/options copy. User is leaning **Attune** or **Tally** (see
-  `NAMES.md`). Don't bake a name deep until they pick.
+- **Name: WDIW** ("What Did I Watch?") — chosen 2026-06-25 (see `NAMES.md`); set in
+  `package.json`, `manifest.config.ts`, and popup/options copy. NOT renamed: the internal
+  `tldw*` storage keys (a rename needs a data migration — step 5) and the GitHub
+  repo/dir, both still `watchprint`.
 
 ## File map
 
