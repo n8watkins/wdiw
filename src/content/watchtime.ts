@@ -35,7 +35,11 @@ import type { WatchProgressMessage } from "../types";
 import { countableSeconds } from "../lib/watchgate";
 import { extractVideoId } from "../lib/constants";
 
-const log = (...args: unknown[]) => console.log("[WDIW WT]", ...args);
+// Flip to true to trace navigation/tracking in the page console; ships silent.
+const DEBUG = false;
+const log = (...args: unknown[]) => {
+  if (DEBUG) console.log("[WDIW WT]", ...args);
+};
 
 // ---- inlined YouTube scrapers ----------------------------------------------
 
