@@ -40,16 +40,20 @@ feasibility in [`../tldw/docs/ANALYTICS_SPLIT.md`](../tldw/docs/ANALYTICS_SPLIT.
 | `fa5610f` | **Step 7 (A–D)**: Shorts capture fix + data model + `lib/shorts.ts` helpers (doom-scroll sessions, algorithm-feed) + Stats Shorts split card. Plus deep-review fixes: per-day watch-time attribution (`dailySeconds`), lifted Channels expand state, windowed empty-state guard. |
 | `0a6730c` | **Rename → WDIW** ("What Did I Watch?"). GitHub repo also renamed to `n8watkins/wdiw`. Internal `tldw*` keys + working dir unchanged. |
 | `b10428c` `4d1c325` | **Step 7-E**: doom-scroll nudge — daily Shorts limit (Settings) → toolbar badge + popup banner (`shortsLimitStatus`). `4d1c325` = a second deep review's fixes (global `videosWatched` counter for a consistent Shorts/long split; badge listener short-circuit; nudge-number reconciliation). |
+| `8f866c5` | **Step 7-D polish (completes Step 7)**: "When you watch" time-of-day heatmap (`dashboards.hourlyHeatmap`) + Shorts/Long/All kind filter on Channels + History. |
 
-**Verified:** `npm run typecheck` clean, **109/109** tests, `npm run build` OK. The
-extension **loads, accrues data (incl. Shorts), renders the dashboards, and shows the
-doom-scroll nudge**. A loadable build is copied to `C:\Users\natha\Downloads\watchprint-dist`
+**Verified:** `npm run typecheck` clean, **111/111** tests, `npm run build` OK. **Step 7
+is complete.** The extension loads, accrues data (incl. Shorts), renders the dashboards
+(per-channel time/engagement, Shorts split, peak-hours heatmap, kind filters), and shows
+the doom-scroll nudge. A loadable build is copied to `C:\Users\natha\Downloads\watchprint-dist`
 for unpacked install (`build` is plain `vite build` — no auto Windows copy; re-copy
 `dist/` after rebuilds).
 
-**NOT done yet:** the **time-of-day heatmap** + a Shorts/long **kind filter** on
-Channels/History (the rest of Step 7-D); the step 2.5 type-trim cleanup; migration/Takeout
-(step 5). (Name chosen: **WDIW**; GitHub repo is `n8watkins/wdiw`.)
+**NOT done yet (★ next = Step 5 migration):** **no TL;DW → WDIW data migration exists** —
+chrome.storage is per-extension, so WDIW starts empty and can't read TL;DW's
+`tldwStats`/`history`. Build the one-time export→import JSON bridge + the optional Google
+Takeout `watch-history.json` backfill importer. Also pending: the step 2.5 type-trim
+cleanup. (Name: **WDIW**; repo `n8watkins/wdiw`.)
 
 ## How the capture works (the data flow)
 
@@ -81,24 +85,23 @@ shell + `VirtualList`/`Icons`/`ConfirmDialog`/`options.css` ported from TL;DW
 (pre-`dd34755`). Full breakdown in `PLAN.md` Step 4. Verified typecheck / 79 tests /
 build. Loadable build copied to `C:\Users\natha\Downloads\watchprint-dist`.
 
-### 2. ★ Step 7 — Shorts split + doom-scroll quantifier (A–E done)
+### 2. ✅ Step 7 — Shorts split + doom-scroll quantifier (complete)
 Shorts track (capture fixed); Stats shows the Shorts-vs-long split, longest doom-scroll,
-and "channels the algorithm feeds you"; and the **nudge** ships — a daily Shorts limit
-(Settings) drives a toolbar badge + popup banner. **Remaining in Step 7:** the
-**time-of-day heatmap** and a Shorts/long **kind filter** on Channels / History (the rest
-of D). Full status in `PLAN.md` Step 7. **Data-access verified:** no API returns watch
-history with or without Google auth (removed 2016) — build auth-free; backfill = Takeout.
+"channels the algorithm feeds you", and the peak-hours heatmap; Channels + History have a
+kind filter; and the **nudge** ships (daily Shorts limit → toolbar badge + popup banner).
 
-### 3. Step 2.5 — finish the trim (cleanup, low priority)
+### 3. ★ Step 5 — Migration from TL;DW + Takeout backfill (NEXT)
+chrome.storage is per-extension, so WDIW **cannot read TL;DW's data** — existing users'
+stats are stranded. Build: (a) a one-time **export-from-TL;DW → import-into-WDIW** JSON
+bridge for `tldwStats` + `history`; (b) an optional **Google Takeout** `watch-history.json`
+importer to seed years of past history. **Data-access verified:** no API returns watch
+history with or without Google auth (removed 2016) — auth-free; Takeout is the only
+ToS-clean backfill (and it has no watch durations — enrich what we can, be honest).
+
+### 4. Step 2.5 — finish the trim (cleanup, low priority)
 `types/index.ts` still carries a dead summarizer/message/sponsor type block (left
 intentionally to avoid a cascade during step 2). Remove what's now truly unused.
 Optionally rename the `tldw*` storage keys (then add a migration in step 5).
-
-### 4. Step 5 — Migration + history
-chrome.storage is per-extension, so Watchprint starts **empty** and can't read TL;DW's
-`tldwStats`. Build a one-time **export-from-TL;DW → import** bridge (JSON), and an
-optional **Google Takeout** `watch-history.json` importer for backfill (the only
-ToS-clean path to past data; note: Takeout has **no watch durations**).
 
 ### 5. Then the product roadmap → [`IDEAS.md`](IDEAS.md)
 Shorts-vs-long split + a **Shorts quantifier**, **accuracy hardening** (the #1

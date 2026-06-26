@@ -63,7 +63,7 @@ engagement-aware, **live + local**, **desktop**, with a Shorts quantifier — op
 paired with a limit/nudge (demand skews "help me stop"). Avoid "yet another yearly
 wrapped" (YouTube shipped native Recap, Dec 2025).
 
-## Step 7 — Shorts split + doom-scroll quantifier (A–E done; remaining: time-of-day heatmap + kind filter)
+## ✅ Step 7 — Shorts split + doom-scroll quantifier (complete)
 The competitive white space (ANALYTICS_SPLIT.md §3) and the strongest expressed demand
 ("help me **stop**"). Prioritized **ahead of Step 5**.
 
@@ -97,9 +97,10 @@ Sub-steps (each independently shippable):
   simplified model — no Engaged/Skimmed/Skipped verdict (they loop).
 - ✅ **C. Helpers** (`lib/shorts.ts`, +25 tests): `doomScrollSessions` (>3-min gap
   split), `longestDoomScroll`, `algorithmFeedChannels`, `shortsVsLong`.
-- ◐ **D. Dashboards** — Stats now shows the Shorts-vs-long split card + longest
-  doom-scroll + "channels the algorithm feeds you". **Remaining:** the time-of-day
-  heatmap, and a Shorts/long **kind filter** on Channels / History.
+- ✅ **D. Dashboards** — Stats shows the Shorts-vs-long split card + longest
+  doom-scroll + "channels the algorithm feeds you"; a **time-of-day (peak-hours)
+  heatmap** ("When you watch", 7×24 weekday×hour via `dashboards.hourlyHeatmap`);
+  and a Shorts / Long-form / All **kind filter** on Channels + History.
 - ✅ **E. Nudge / limit** — optional daily Shorts limit (Settings → Doom-scroll guard;
   off by default) → toolbar badge with today's Shorts minutes (green→amber→red) +
   popup banner. Shared pure `shortsLimitStatus` (off/ok/warn/over) drives both, off the
