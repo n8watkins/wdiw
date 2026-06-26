@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { HistoryExpiryDays, HistoryLimit, Settings } from "../../types";
 import {
   DEFAULT_SETTINGS,
@@ -6,7 +6,8 @@ import {
   STORAGE_KEYS,
   TLDW_STATS_KEY,
 } from "../../lib/constants";
-import { getSettings, setSettings } from "../../lib/storage";
+import { getSettings, importHistoryEntries, setSettings } from "../../lib/storage";
+import { parseHistoryExport } from "../../lib/migrate";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { Icon } from "../components/Icons";
 
@@ -15,6 +16,9 @@ export function SettingsSection() {
   const [saved, setSaved] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  // Import (migration from TL;DW / WDIW backup). null = idle; ok/err drive the colour.
+  const [importMsg, setImportMsg] = useState<{ kind: "ok" | "err" | "busy"; text: string } | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   // Transient text for the % fields so clearing them to retype doesn't snap to
   // the clamp minimum mid-edit. null = not editing; show the persisted value.
   const [engagedDraft, setEngagedDraft] = useState<string | null>(null);
@@ -53,6 +57,26 @@ export function SettingsSection() {
     setLocal(DEFAULT_SETTINGS);
     await setSettings(DEFAULT_SETTINGS);
     setConfirmReset(false);
+  }
+
+  async function onImportFile(file: File) {
+    setImportMsg({ kind: "busy", text: "Importing…" });
+    try {
+      const entries = parseHistoryExport(JSON.parse(await file.text()));
+      if (entries.length === 0) {
+        setImportMsg({ kind: "err", text: "No watch entries found in that file." });
+        return;
+      }
+      const r = await importHistoryEntries(entries);
+      const skipped = r.skipped > 0 ? `, skipped ${r.skipped} already present` : "";
+      setImportMsg({
+        kind: "ok",
+        text: `Imported ${r.imported} video${r.imported === 1 ? "" : "s"}${skipped}. Your stats now include them.`,
+      });
+    } catch (err) {
+      const detail = err instanceof SyntaxError ? "That doesn't look like valid JSON." : err instanceof Error ? err.message : "Could not read that file.";
+      setImportMsg({ kind: "err", text: detail });
+    }
   }
 
   if (!settings) return <p className="text-muted">Loading…</p>;
@@ -240,6 +264,50 @@ export function SettingsSection() {
               ))}
             </select>
           </div>
+        </div>
+      </div>
+
+      <div className="settings-group">
+        <div className="settings-group-title"><Icon name="upload" /> Import / migrate</div>
+        <div className="card">
+          <div className="card-title">Import from TL;DW (or a WDIW backup)</div>
+          <div className="card-desc" style={{ marginBottom: 16 }}>
+            Coming from TL;DW? In TL;DW open <strong>Options → History → Export</strong>, then load that
+            JSON here — WDIW rebuilds your per-channel watch time + engagement from it. Also restores a
+            WDIW export. Importing the same file twice is safe (videos you already have are skipped).
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json,.json"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void onImportFile(f);
+              e.target.value = ""; // let the user re-pick the same file
+            }}
+          />
+          <button className="btn btn-primary btn-icon-text" onClick={() => fileRef.current?.click()}>
+            <Icon name="upload" />
+            Choose export file…
+          </button>
+          {importMsg && (
+            <div
+              style={{
+                marginTop: 12,
+                fontSize: 13,
+                color:
+                  importMsg.kind === "ok"
+                    ? "var(--success)"
+                    : importMsg.kind === "err"
+                      ? "var(--danger)"
+                      : "var(--muted)",
+              }}
+            >
+              {importMsg.kind === "err" ? "⚠️ " : ""}
+              {importMsg.text}
+            </div>
+          )}
         </div>
       </div>
 

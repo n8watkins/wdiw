@@ -9,7 +9,8 @@ export type IconProps = {
     | "sliders"
     | "clock"
     | "bar-chart"
-    | "eye";
+    | "eye"
+    | "upload";
 };
 
 const PATHS: Record<IconProps["name"], string[]> = {
@@ -23,6 +24,7 @@ const PATHS: Record<IconProps["name"], string[]> = {
   clock: ["M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z", "M12 7v5l3 2"],
   "bar-chart": ["M3 3v18h18", "M7 16v-4", "M11 16V8", "M15 16v-7", "M19 16v-2"],
   eye: ["M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z", "M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"],
+  upload: ["M12 15V3", "M7 8l5-5 5 5", "M5 21h14"],
 };
 
 export function Icon({ name }: IconProps) {

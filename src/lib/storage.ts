@@ -13,6 +13,7 @@ import {
   TLDW_STATS_KEY,
 } from "./constants";
 import { trimChannelStats } from "./stats";
+import { collapseByVideo, foldImportedEntries, videoKey } from "./migrate";
 
 export async function getSettings(): Promise<Settings> {
   const r = await chrome.storage.local.get(STORAGE_KEYS.settings);
@@ -437,4 +438,61 @@ export function verdictCounterDelta(
   else if (next === "skim") delta.skimmed += 1;
   else if (next === "skip") delta.skipped += 1;
   return delta;
+}
+
+// --- migration / import (Step 5) -------------------------------------------
+
+export type ImportResult = {
+  /** Distinct videos in the file (after collapsing duplicate rows). */
+  total: number;
+  /** Videos newly folded in (not already present in WDIW). */
+  imported: number;
+  /** Videos skipped because WDIW already has them. */
+  skipped: number;
+};
+
+/**
+ * Import watch history from a TL;DW (or WDIW) export into WDIW's store. Collapses
+ * duplicate rows to one record per video, dedupes against the current history by
+ * video, folds the fresh ones into the never-pruned lifetime + per-channel stats,
+ * and merges them into the (capped) history log. Idempotent for videos still in
+ * history — re-importing the same file skips them; a video pruned from history
+ * since a prior import could be re-counted, so import once, ideally on a fresh
+ * install (the common migration case).
+ */
+export async function importHistoryEntries(
+  rawEntries: SearchHistoryEntry[],
+): Promise<ImportResult> {
+  const records = collapseByVideo(rawEntries);
+  const history = await getHistory();
+  const existing = new Set(history.map(videoKey));
+  const fresh = records
+    .filter((r) => !existing.has(videoKey(r)))
+    .map((r) => (r.id ? r : { ...r, id: crypto.randomUUID() }));
+
+  const result: ImportResult = {
+    total: records.length,
+    imported: fresh.length,
+    skipped: records.length - fresh.length,
+  };
+  if (fresh.length === 0) return result;
+
+  // 1) Fold into the never-pruned lifetime + per-channel aggregates (the dashboards).
+  await bumpLifetimeStats((s) => {
+    foldImportedEntries(s, fresh);
+  });
+
+  // 2) Merge into the history log (newest-first), capped at the configured limit.
+  const settings = await getSettings();
+  await mutateHistory((cur) => {
+    const have = new Set(cur.map(videoKey));
+    const add = fresh.filter((r) => !have.has(videoKey(r)));
+    if (add.length === 0) return null;
+    const merged = [...add, ...cur].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+    return settings.historyLimit === "unlimited" ? merged : merged.slice(0, settings.historyLimit);
+  });
+
+  return result;
 }
